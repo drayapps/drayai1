@@ -241,6 +241,13 @@ function openAlerts(){ return sys.alerts.filter(a => !a.resolved); }
 function renderAlerts(){
   const open = openAlerts();
   const badge = open.filter(a => a.p <= 2).length;
+  /* קפיצת פידבק כשהמונה עולה — אינדיקציית מצב, לא קישוט */
+  if (badge > +(alertBadge.dataset.count || 0)) {
+    alertBadge.classList.remove('pop');
+    void alertBadge.offsetWidth; /* אתחול האנימציה כדי שתרוץ שוב */
+    alertBadge.classList.add('pop');
+  }
+  alertBadge.dataset.count = badge;
   alertBadge.textContent = badge;
   alertBadge.classList.toggle('hidden', badge === 0);
   stTxt.classList.toggle('alert', open.some(a => a.p <= 1));
@@ -360,6 +367,20 @@ function parseWhen(t){
   else d.setHours(9, 0, 0, 0);
   return d.getTime() > Date.now() ? d.getTime() : null;
 }
+/* התראת מערכת — קופצת גם כשהחלון ממוזער או בטאב אחר */
+function notifyOS(title, body){
+  try {
+    if ('Notification' in window && Notification.permission === 'granted')
+      new Notification(title, { body });
+  } catch(e){}
+}
+function askNotifyPermission(){
+  try {
+    if ('Notification' in window && Notification.permission === 'default')
+      Notification.requestPermission();
+  } catch(e){}
+}
+
 /* לולאת תזכורות — בודקת כל 20 שניות, מדברת כשמגיע הזמן */
 setInterval(() => {
   const now = Date.now();
@@ -371,11 +392,23 @@ setInterval(() => {
       addMsg('ai', m);
       lastAnswer.textContent = m;
       addAlert(2, m, '');
+      notifyOS('DRAY·AI — תזכורת', ev.title);
       speak(m);
     }
   });
   if (fired) saveEvents();
 }, 20000);
+
+/* תזכורות שהזמן שלהן עבר כשהאתר היה סגור — מדווחים ברגע שחוזרים */
+function missedReminders(){
+  const now = Date.now();
+  const missed = events.filter(e => !e.done && e.ts <= now - 120000);
+  if (!missed.length) return;
+  missed.forEach(e => { e.done = true; });
+  saveEvents();
+  addMsg('sys', 'תזכורות שעברו בזמן שלא היית כאן:\n' + missed.map(fmtEv).join('\n'));
+  notifyOS('DRAY·AI — תזכורות שפוספסו', missed.map(e => e.title).join(' · '));
+}
 
 /* ============ זיכרון ארוך טווח: ארכיון, עובדות ויומן-קובץ ============ */
 let archive = (() => { try { return JSON.parse(store.get('dray_archive', '[]')); } catch(e){ return []; } })();
@@ -572,7 +605,10 @@ async function localAnswer(raw){
       .trim() || 'תזכורת';
     events.push({ id: Date.now(), ts, title, done: false });
     saveEvents();
-    return { text: 'נקבע: ' + fmtEv(events[events.length - 1]) + '. אזכיר לך בזמן.', say: 'נקבע. אזכיר לך בזמן.' };
+    askNotifyPermission(); /* מבקשים הרשאת התראות מערכת בקביעה הראשונה */
+    const when = new Date(ts).toLocaleString('he-IL', { weekday: 'long', hour: '2-digit', minute: '2-digit' });
+    return { text: 'נקבע: ' + fmtEv(events[events.length - 1]) + '. אזכיר לך בזמן — בקול ובהתראה.',
+      say: 'נקבע ל' + when + '. אזכיר לך.' };
   }
 
   /* --- קבצים --- */
@@ -657,6 +693,15 @@ chips.addEventListener('click', e => {
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
 let rec = null, listening = false;
 let recRestarts = 0, recWindowStart = 0, lastRecError = '', micGranted = false;
+/* צבירת דיבור: לא שולחים באמצע משפט — רק אחרי שקט אמיתי או עצירה ידנית */
+let finalBuf = '', silenceTimer = null;
+const SILENCE_MS = 1800;
+function flushSpeech(){
+  clearTimeout(silenceTimer);
+  const said = finalBuf.replace(/\s+/g, ' ').trim();
+  finalBuf = '';
+  if (said) ask(said);
+}
 if (SR) {
   rec = new SR();
   rec.lang = 'he-IL';
@@ -664,18 +709,24 @@ if (SR) {
   rec.continuous = true; /* בלי זה Chrome עוצר אחרי שקט קצר */
   rec.onresult = e => {
     audioLevel = Math.min(0.6, audioLevel + 0.15);
-    const res = e.results[e.results.length - 1];
-    if (res.isFinal) {
-      const said = res[0].transcript.trim();
-      stopListen();
-      if (said) ask(said);
-      return;
-    }
-    /* תמלול חי — מציגים את המילים עוד לפני שהמשפט הסתיים */
+    /* Chrome מסמן "סוף משפט" על כל הפסקת נשימה — אז צוברים במקום לשלוח מיד */
     let interim = '';
-    for (let i = 0; i < e.results.length; i++)
-      if (!e.results[i].isFinal) interim += e.results[i][0].transcript;
-    if (interim.trim()) showInterim(interim.trim());
+    finalBuf = '';
+    for (let i = 0; i < e.results.length; i++) {
+      const r = e.results[i];
+      if (r.isFinal) finalBuf += r[0].transcript + ' ';
+      else interim += r[0].transcript;
+    }
+    const shown = (finalBuf + interim).trim();
+    if (shown) showInterim(shown);
+    /* כל דיבור חדש מאפס את טיימר השקט — שולחים רק כשבאמת סיימת */
+    clearTimeout(silenceTimer);
+    if (finalBuf.trim() && !interim.trim()) {
+      silenceTimer = setTimeout(() => {
+        stopListen();
+        flushSpeech();
+      }, SILENCE_MS);
+    }
   };
   /* Chrome מסיים את הזיהוי מעצמו אחרי שקט — כל עוד המשתמש לא כיבה, מפעילים מחדש.
      אם הוא נכבה שוב ושוב תוך שניות — נעצרים ומדווחים מה השגיאה האמיתית. */
@@ -744,6 +795,8 @@ async function startListen(){
   recRestarts = 0;
   recWindowStart = Date.now();
   lastRecError = '';
+  finalBuf = '';
+  clearTimeout(silenceTimer);
   micBtn.classList.add('rec');
   setMode(State.LISTEN);
   showInterim('מקשיב…');
@@ -877,7 +930,8 @@ async function transcribe(blob){
 function startVoice(){ voiceMode === 'whisper' ? startWhisper() : startListen(); }
 micBtn.onclick = () => {
   if (voiceMode === 'whisper') { mediaRec ? stopWhisper() : startWhisper(); }
-  else { listening ? stopListen() : startListen(); }
+  else if (listening) { stopListen(); flushSpeech(); } /* עצירה ידנית = סיימתי, שלח מה שנצבר */
+  else { startListen(); }
 };
 
 /* ============ טקסט → דיבור ============ */
@@ -978,6 +1032,8 @@ function speak(text, onDone){
 function cancelAll(){
   if (aborter) { aborter.abort(); aborter = null; }
   if (HAS_TTS) speechSynthesis.cancel();
+  clearTimeout(silenceTimer);
+  finalBuf = ''; /* ביטול — לא שולחים את מה שנצבר */
   stopListen();
   if (mediaRec) { discardRec = true; stopWhisper(); } /* ביטול הקלטה בלי לתמלל */
   setMode(State.IDLE);
@@ -1006,8 +1062,11 @@ function systemNow(){
 }
 
 function setBusy(busy){
+  /* טשטוש קצר שממסך את החלפת הטקסט — שני המצבים נתפסים כמעבר אחד */
+  sendBtn.classList.add('morph');
   sendBtn.textContent = busy ? 'עצור' : 'שלח';
   sendBtn.classList.toggle('stop', busy);
+  setTimeout(() => sendBtn.classList.remove('morph'), 120);
 }
 
 async function ask(userText, ctx){
@@ -1160,6 +1219,7 @@ txt.addEventListener('keydown', e => { if (e.key === 'Enter') sendTxt(); });
 restoreHistory();
 renderAlerts();
 bootChecks();
+missedReminders();
 document.querySelector('.status').onclick = () => ask('/סטטוס');
 if (!getKey()) setTimeout(() => settings.classList.add('open'), 800);
 

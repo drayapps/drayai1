@@ -65,16 +65,22 @@
     transition:transform 200ms var(--ease-out), opacity 200ms var(--ease-out);
   }
   #alertBadge.hidden{opacity:0;transform:scale(0.6)}
+  /* קפיצת פידבק כשמספר ההתראות עולה */
+  #alertBadge.pop{animation:badgePop 300ms var(--ease-out)}
+  @keyframes badgePop{40%{transform:scale(1.35)}100%{transform:scale(1)}}
   #alertsPanel{
     position:fixed;top:58px;inset-inline-end:14px;width:min(360px,92vw);z-index:40;
     background:#0a1420;border:1px solid var(--line);border-radius:14px;
     box-shadow:0 14px 50px rgba(0,0,0,.55);overflow:hidden;
-    display:none;opacity:0;transform:translateY(-6px);
-    transition:opacity 180ms var(--ease-out), transform 180ms var(--ease-out), display 180ms allow-discrete;
+    transform-origin:top; /* נפתח מכיוון הפעמון, לא מהמרכז */
+    display:none;opacity:0;transform:translateY(-6px) scale(0.97);
+    /* יציאה מהירה מכניסה — המערכת מגיבה, לא מהרהרת */
+    transition:opacity 140ms var(--ease-out), transform 140ms var(--ease-out), display 140ms allow-discrete;
   }
   #alertsPanel.open{
-    display:block;opacity:1;transform:translateY(0);
-    @starting-style{opacity:0;transform:translateY(-6px)}
+    display:block;opacity:1;transform:translateY(0) scale(1);
+    transition-duration:200ms;
+    @starting-style{opacity:0;transform:translateY(-6px) scale(0.97)}
   }
   .al-head{padding:10px 14px;font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:.25em;color:var(--muted);border-bottom:1px solid var(--line);direction:ltr}
   .al-empty{padding:18px;text-align:center;color:var(--muted);font-size:12.5px}
@@ -142,7 +148,7 @@
   @keyframes chipIn{to{opacity:1;transform:translateY(0)}}
   .chip:active{transform:scale(0.96)}
   @media (hover:hover) and (pointer:fine){
-    .chip:hover{color:var(--ice);border-color:var(--cyan-dim);background:rgba(79,216,255,.12)}
+    .chip:hover{color:var(--ice);border-color:var(--cyan-dim);background:rgba(79,216,255,.12);transform:translateY(-1px)}
   }
 
   aside{
@@ -221,6 +227,8 @@
     #sendBtn:hover{filter:brightness(1.15)}
   }
   #sendBtn.stop{background:var(--amber)}
+  /* טשטוש קצר שממסך את החלפת הטקסט שלח↔עצור — מעבר אחד חלק במקום שני מצבים קופצים */
+  #sendBtn.morph{filter:blur(3px) brightness(1.1)}
   .toggles{display:flex;flex-direction:column;gap:5px;flex:none}
   .voice-toggle{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--muted);cursor:pointer;user-select:none}
   .voice-toggle input{accent-color:var(--cyan);cursor:pointer}
@@ -230,19 +238,22 @@
     position:fixed;inset:0;background:rgba(2,6,12,.8);backdrop-filter:blur(8px);
     display:none;align-items:center;justify-content:center;z-index:50;padding:20px;
     opacity:0;
-    transition:opacity 200ms var(--ease-out), display 200ms allow-discrete;
+    /* כניסה 220ms, יציאה 150ms — סגירה היא תגובת מערכת וצריכה להרגיש מיידית */
+    transition:opacity 150ms var(--ease-out), display 150ms allow-discrete;
   }
   #settings.open{
     display:flex;opacity:1;
+    transition-duration:220ms;
     @starting-style{opacity:0}
   }
   .set-card{
     width:min(440px,100%);background:#0a1420;border:1px solid var(--line);border-radius:16px;
     padding:26px;box-shadow:0 0 60px rgba(79,216,255,.12);
     transform:scale(1);
-    transition:transform 200ms var(--ease-out);
+    transition:transform 150ms var(--ease-out);
   }
   #settings.open .set-card{
+    transition-duration:220ms;
     @starting-style{transform:scale(0.96)}
   }
   .set-card h2{font-size:17px;font-weight:800;margin-bottom:6px}
@@ -280,9 +291,20 @@
     #sendBtn{padding:12px 14px;min-width:60px}
     .toggles{display:none}
   }
+  /* ===== לכידות: פסי גלילה בערכת הנושא, לא של מערכת ההפעלה ===== */
+  #log,.last-answer{scrollbar-width:thin;scrollbar-color:var(--cyan-dim) transparent}
+  #log::-webkit-scrollbar,.last-answer::-webkit-scrollbar{width:6px}
+  #log::-webkit-scrollbar-thumb,.last-answer::-webkit-scrollbar-thumb{background:var(--cyan-dim);border-radius:3px}
+  #log::-webkit-scrollbar-track,.last-answer::-webkit-scrollbar-track{background:transparent}
+
+  /* ===== נגישות: טבעת פוקוס למקלדת בלבד ===== */
+  button:focus-visible,input:focus-visible,.chip:focus-visible{
+    outline:2px solid var(--cyan);outline-offset:2px;
+  }
+
   @media (prefers-reduced-motion:reduce){
-    .brand .dot,#micBtn.rec,.msg.typing i{animation:none}
+    .brand .dot,#micBtn.rec,.msg.typing i,#alertBadge.pop{animation:none}
     .chip{animation-duration:1ms;animation-delay:0ms}
-    .msg,aside{transition-property:opacity}
+    .msg,aside,#alertsPanel,#settings,.set-card{transition-property:opacity}
   }
 
