@@ -695,6 +695,7 @@ chips.addEventListener('click', e => {
 
 /* ============ דיבור → טקסט ============ */
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+const IS_MOBILE = /Android|iPhone|iPad/i.test(navigator.userAgent);
 let rec = null, listening = false;
 let recRestarts = 0, recWindowStart = 0, lastRecError = '', micGranted = false;
 /* צבירת דיבור: לא שולחים באמצע משפט — רק אחרי שקט אמיתי או עצירה ידנית */
@@ -710,18 +711,21 @@ if (SR) {
   rec = new SR();
   rec.lang = 'he-IL';
   rec.interimResults = true;
-  rec.continuous = true; /* בלי זה Chrome עוצר אחרי שקט קצר */
+  /* מצב רציף בדסקטופ; באנדרואיד continuous משכפל תמלולים — שם ההפעלה-מחדש האוטומטית ממלאת את התפקיד */
+  rec.continuous = !IS_MOBILE;
   rec.onresult = e => {
     audioLevel = Math.min(0.6, audioLevel + 0.15);
-    /* Chrome מסמן "סוף משפט" על כל הפסקת נשימה — אז צוברים במקום לשלוח מיד */
+    /* Chrome מסמן "סוף משפט" על כל הפסקת נשימה — אז צוברים במקום לשלוח מיד.
+       מעבדים רק תוצאות חדשות (resultIndex) ומסננים כפילויות שאנדרואיד שולח. */
     let interim = '';
-    finalBuf = '';
-    for (let i = 0; i < e.results.length; i++) {
+    for (let i = e.resultIndex; i < e.results.length; i++) {
       const r = e.results[i];
-      if (r.isFinal) finalBuf += r[0].transcript + ' ';
-      else interim += r[0].transcript;
+      if (r.isFinal) {
+        const txt = r[0].transcript.replace(/\s+/g, ' ').trim();
+        if (txt && !finalBuf.trim().endsWith(txt)) finalBuf += txt + ' ';
+      } else interim += r[0].transcript;
     }
-    const shown = (finalBuf + interim).trim();
+    const shown = (finalBuf + interim).replace(/\s+/g, ' ').trim();
     if (shown) showInterim(shown);
     /* כל דיבור חדש מאפס את טיימר השקט — שולחים רק כשבאמת סיימת */
     clearTimeout(silenceTimer);
