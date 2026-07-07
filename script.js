@@ -63,6 +63,30 @@ settings.addEventListener('click', e => { if (e.target === settings) settings.cl
 const aside = document.getElementById('aside');
 document.getElementById('chatBtn').onclick = () => aside.classList.toggle('open');
 
+/* ============ מדריך יכולות — דיאלוג נגיש ============ */
+const guide = document.getElementById('guide');
+let guideReturnFocus = null;
+function openGuide(){
+  guideReturnFocus = document.activeElement;
+  guide.classList.add('open');
+  document.getElementById('closeGuide').focus(); /* הפוקוס נכנס לדיאלוג */
+}
+function closeGuide(){
+  guide.classList.remove('open');
+  if (guideReturnFocus && guideReturnFocus.focus) guideReturnFocus.focus(); /* וחוזר לכפתור שפתח */
+}
+document.getElementById('helpBtn').onclick = openGuide;
+document.getElementById('closeGuide').onclick = closeGuide;
+guide.addEventListener('click', e => { if (e.target === guide) closeGuide(); });
+/* מלכודת פוקוס — Tab נשאר בתוך הדיאלוג כל עוד הוא פתוח */
+guide.addEventListener('keydown', e => {
+  if (e.key !== 'Tab') return;
+  const f = guide.querySelectorAll('button, a, [tabindex]');
+  const first = f[0], last = f[f.length - 1];
+  if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+  else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+});
+
 /* ============ ליבה אנימטיבית ============ */
 const cv = document.getElementById('core');
 const ctx = cv.getContext('2d');
@@ -500,6 +524,7 @@ async function listDirNames(dir){
 }
 
 const HELP_TEXT = 'פקודות מקומיות (עובדות מיד, בלי מודל):\n'
+  + '/מדריך — מסך עם כל היכולות\n'
   + '/סטטוס · /בריאות · /התראות — מצב המערכת\n'
   + '/יומן — האירועים שלך · "קבע מחר ב-14:00 רופא" · "תזכיר לי בעוד 10 דקות להוציא כביסה"\n'
   + '"מה יש לי היום / מחר / השבוע" — הלוז שלך\n'
@@ -530,6 +555,10 @@ async function localAnswer(raw){
   if (/^\/?(בריאות|בדיקה|health)$/i.test(t)) return { text: healthDetail(), sys: true };
   if (/^\/?(התראות|alerts)$/i.test(t)) { alertsPanel.classList.add('open'); return { text: alertsToText(), sys: true }; }
   if (/^\/?(עזרה|help)$/i.test(t)) return { text: HELP_TEXT, sys: true };
+  if (/^\/?(מדריך|guide)$/i.test(t) || /^מה אתה (יודע|יכול) לעשות$/.test(t)) {
+    openGuide();
+    return { text: 'פתחתי את המדריך — כל מה שאני יודע לעשות, במסך אחד.', sys: true, say: 'הנה כל מה שאני יודע לעשות.' };
+  }
 
   /* --- זיכרון ארוך טווח --- */
   const rm = t.match(/^תזכור ש(.+)$/);
@@ -1046,7 +1075,14 @@ function cancelAll(){
   if (mediaRec) { discardRec = true; stopWhisper(); } /* ביטול הקלטה בלי לתמלל */
   setMode(State.IDLE);
 }
-addEventListener('keydown', e => { if (e.key === 'Escape') { cancelAll(); settings.classList.remove('open'); aside.classList.remove('open'); alertsPanel.classList.remove('open'); } });
+addEventListener('keydown', e => {
+  if (e.key !== 'Escape') return;
+  cancelAll();
+  settings.classList.remove('open');
+  aside.classList.remove('open');
+  alertsPanel.classList.remove('open');
+  if (guide.classList.contains('open')) closeGuide();
+});
 
 /* ============ מוח: Groq (Llama 3.3 70B) עם סטרימינג ============ */
 const SYSTEM = `אתה DRAY·AI — עוזר אישי קולי בסגנון ג'רביס, שנבנה עבור יקיר.
@@ -1230,5 +1266,6 @@ renderAlerts();
 bootChecks();
 missedReminders();
 document.querySelector('.status').onclick = () => ask('/סטטוס');
+document.querySelector('.status').onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); ask('/סטטוס'); } };
 if (!getKey()) setTimeout(() => settings.classList.add('open'), 800);
 

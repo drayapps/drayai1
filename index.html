@@ -16,16 +16,17 @@
   </div>
   <div class="hdr-actions">
     <span id="clock"></span>
-    <div class="status" title="לחיצה מציגה סטטוס מלא">SYS <b id="stTxt">ONLINE</b></div>
-    <button id="bellBtn" class="hdr-btn" title="התראות">🔔<span id="alertBadge" class="hidden">0</span></button>
-    <button id="chatBtn" class="hdr-btn" title="תמלול">💬</button>
-    <button id="gearBtn" class="hdr-btn" title="הגדרות">⚙</button>
+    <div class="status" title="לחיצה מציגה סטטוס מלא" role="button" tabindex="0" aria-label="סטטוס מערכת">SYS <b id="stTxt">ONLINE</b></div>
+    <button id="helpBtn" class="hdr-btn" title="מדריך — מה אפשר לעשות" aria-label="מדריך שימוש">?</button>
+    <button id="bellBtn" class="hdr-btn" title="התראות" aria-label="התראות">🔔<span id="alertBadge" class="hidden" aria-hidden="true">0</span></button>
+    <button id="chatBtn" class="hdr-btn" title="תמלול" aria-label="תמלול השיחה">💬</button>
+    <button id="gearBtn" class="hdr-btn" title="הגדרות" aria-label="הגדרות">⚙</button>
   </div>
 </header>
 
 <main>
   <div class="core-zone">
-    <canvas id="core" width="420" height="420" title="לחיצה עוצרת דיבור"></canvas>
+    <canvas id="core" width="420" height="420" title="לחיצה עוצרת דיבור" aria-hidden="true"></canvas>
     <div class="core-label" id="coreLabel">standby</div>
     <div class="last-answer" id="lastAnswer">שלום יקיר. לחץ על המיקרופון ודבר אליי, או כתוב למטה.</div>
     <div class="chips" id="chips">
@@ -34,6 +35,7 @@
       <button class="chip">תן לי רעיון לארוחת ערב</button>
       <button class="chip">ספר לי משהו מעניין</button>
       <button class="chip">סטטוס מערכת</button>
+      <button class="chip">מה אתה יודע לעשות?</button>
     </div>
   </div>
 
@@ -47,7 +49,7 @@
 </main>
 
 <footer>
-  <button id="micBtn" title="דבר אליי">
+  <button id="micBtn" title="דבר אליי" aria-label="מיקרופון — דבר אליי">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
       <rect x="9" y="3" width="6" height="11" rx="3"/>
       <path d="M5 11a7 7 0 0 0 14 0M12 18v3"/>
@@ -65,6 +67,69 @@
 <div id="alertsPanel">
   <div class="al-head">ALERTS</div>
   <div id="alertsList"></div>
+</div>
+
+<!-- מדריך יכולות -->
+<div id="guide" role="dialog" aria-modal="true" aria-labelledby="guideTitle">
+  <div class="guide-card">
+    <div class="guide-head">
+      <h2 id="guideTitle">מה DRAY·AI יודע לעשות</h2>
+      <button id="closeGuide" class="hdr-btn" title="סגור" aria-label="סגירת המדריך">✕</button>
+    </div>
+    <div class="guide-body">
+      <section>
+        <h3>🎤 דיבור</h3>
+        <ul>
+          <li>לחץ על המיקרופון ודבר — המילים מופיעות על המסך תוך כדי, והמשפט נשלח אחרי שקט קצר או בלחיצה נוספת.</li>
+          <li>התשובות מוקראות בקול, עם כתוביות שנדלקות בקצב הדיבור (מתג "קול").</li>
+          <li>מתג "שיחה" — אחרי שהוא עונה, הוא חוזר להקשיב לבד.</li>
+          <li>אם זיהוי הדיבור של הדפדפן לא זמין — מעבר אוטומטי להקלטה עם תמלול Whisper.</li>
+        </ul>
+      </section>
+      <section>
+        <h3>📅 יומן ותזכורות</h3>
+        <ul>
+          <li>"קבע מחר ב-14:00 רופא שיניים" · "תזכיר לי בעוד 10 דקות להוציא כביסה"</li>
+          <li>"מה יש לי היום / מחר / השבוע" · <code>/יומן</code> · <code>/יומן מחק 1</code></li>
+          <li>כשמגיע הזמן — תזכורת בקול והתראת מערכת, גם כשהחלון ברקע. פספסת? תקבל דוח בכניסה הבאה.</li>
+        </ul>
+      </section>
+      <section>
+        <h3>💾 זיכרון</h3>
+        <ul>
+          <li>"תזכור שאני אוהב פיצה" — נשמר לתמיד ונכנס להקשר של כל שיחה עתידית.</li>
+          <li>"מה אתה זוכר" · <code>/זיכרון מחק 1</code> · <code>/זיכרון נקה</code></li>
+          <li><code>/ייצוא</code> — הורדת כל השיחות כקובץ. עם תיקייה מחוברת — יומן שיחות אוטומטי (DRAY-LOG.md).</li>
+        </ul>
+      </section>
+      <section>
+        <h3>📂 קבצים</h3>
+        <ul>
+          <li><code>/תיקייה</code> — חיבור תיקייה מהמחשב · <code>/קבצים</code> — מה יש בה · <code>/קרא סיכום.md</code> — קריאה וסיכום במוח.</li>
+        </ul>
+      </section>
+      <section>
+        <h3>🖥️ מערכת</h3>
+        <ul>
+          <li><code>/סטטוס</code> · <code>/בריאות</code> · <code>/התראות</code> — או לחיצה על SYS ONLINE ועל הפעמון 🔔.</li>
+          <li>התראות בעדיפויות: קריטי נפתח מיד, השאר נאספות בפעמון עם מונה.</li>
+        </ul>
+      </section>
+      <section>
+        <h3>⚡ מיידי — בלי מודל ובלי רשת</h3>
+        <ul>
+          <li>"מה השעה" · "מה התאריך" · "פתח יוטיוב / גוגל / וואטסאפ" · <code>/מטבע</code> · <code>/קובייה</code></li>
+        </ul>
+      </section>
+      <section>
+        <h3>⌨️ מקלדת</h3>
+        <ul>
+          <li>Enter — שליחה · Escape — עצירת דיבור/חשיבה וסגירת כל החלונות · לחיצה על הליבה — עצירה.</li>
+        </ul>
+      </section>
+      <p class="guide-tip">ונסה גם לשאול: "מי המלך שלך?" 👑</p>
+    </div>
+  </div>
 </div>
 
 <!-- הגדרות -->
