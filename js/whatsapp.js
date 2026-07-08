@@ -113,3 +113,74 @@ async function composeWhatsApp({ number, recipient, literal, intent }){
   appendArchive('ai', 'וואטסאפ' + (recipient ? ' ל' + recipient : '') + ': ' + msg);
   speak(conf);
 }
+
+
+/* ============ דוח משימות יומי/שבועי → הודעת וואטסאפ ============ */
+/* איתור נמען/מספר בפקודת הדוח ("...לאמא בוואטסאפ", "...ל052...") */
+function waTargetFrom(t){
+  let number = '';
+  const pn = t.match(/\+?\d[\d\-\s]{6,}\d/);
+  if (pn) number = pn[0];
+  let recipient = '';
+  const m = t.match(/(?:וואטסאפ|ווטסאפ|וואצאפ|whatsapp)\s+ל([א-ת]{2,}(?:\s[א-ת]+)?)/i)
+        || t.match(/ל([א-ת]{2,})\s+(?:בוואטסאפ|בווטסאפ|בוואצאפ)/)
+        || t.match(/ל([א-ת]{2,}(?:\s[א-ת]+)?)\s*$/);
+  if (m) recipient = m[1].trim();
+  /* מילות היקף/זמן אינן שם של נמען */
+  if (/^(היום|מחר|מחרתיים|הערב|הבוקר|הצהריים|שבוע|השבוע|יום|ראשון|שני|שלישי|רביעי|חמישי|שישי|שבת|וואטסאפ|ווטסאפ|וואצאפ|משימות|רשימת)$/.test(recipient)) recipient = '';
+  return { number, recipient };
+}
+
+/* טווח הדוח לפי הניסוח: היום (ברירת מחדל) / מחר / מחרתיים / יום בשבוע / השבוע */
+function reportRange(t){
+  const now = new Date();
+  if (/שבוע/.test(t)) {
+    const from = new Date(now); from.setHours(0, 0, 0, 0);
+    return { from: from.getTime(), to: from.getTime() + 7 * 86400000, weekly: true, label: 'השבוע הקרוב' };
+  }
+  const d = new Date(now);
+  if (/מחרתיים/.test(t)) d.setDate(d.getDate() + 2);
+  else if (/מחר/.test(t)) d.setDate(d.getDate() + 1);
+  else {
+    const days = ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'];
+    for (let i = 0; i < 7; i++) {
+      if (new RegExp('ב?יום ' + days[i]).test(t)) { d.setDate(d.getDate() + ((i - now.getDay() + 7) % 7 || 7)); break; }
+    }
+  }
+  const from = new Date(d); from.setHours(0, 0, 0, 0);
+  return { from: from.getTime(), to: from.getTime() + 86400000, weekly: false,
+    label: d.toLocaleDateString('he-IL', { weekday: 'long', day: 'numeric', month: 'long' }) };
+}
+
+/* בניית טקסט הדוח — ממוספר, עם שעות, נקי וקריא לוואטסאפ */
+function buildDailyReport(t){
+  const r = reportRange(t);
+  const list = events.filter(e => e.ts >= r.from && e.ts < r.to).sort((a, b) => a.ts - b.ts);
+  let text = '📋 דוח משימות — ' + r.label;
+  if (!list.length) {
+    text += '\n\nאין משימות מתוכננות. יום פנוי לגמרי 🌿';
+  } else {
+    const lines = list.map((e, i) => {
+      const dt = new Date(e.ts);
+      const time = dt.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
+      const day = r.weekly ? dt.toLocaleDateString('he-IL', { weekday: 'short', day: 'numeric', month: 'numeric' }) + ', ' : '';
+      return (i + 1) + '. ' + day + time + ' — ' + e.title;
+    });
+    text += '\n\n' + lines.join('\n') + '\n\nסה״כ ' + list.length + (list.length === 1 ? ' משימה.' : ' משימות.');
+  }
+  const { number, recipient } = waTargetFrom(t);
+  return { text, number, recipient, count: list.length, label: r.label };
+}
+
+/* מציגה את הדוח בתמלול + כפתור שליחה מוכן בוואטסאפ */
+function composeTaskReport(t){
+  const { text, number, recipient, count, label } = buildDailyReport(t);
+  addMsg('ai', text);
+  addWhatsAppAction(waLink(number, text), number, recipient);
+  const conf = 'הכנתי דוח משימות — ' + label + (count ? ' (' + count + (count === 1 ? ' משימה' : ' משימות') + ')' : '')
+    + '. הקישור לשליחה בוואטסאפ' + (recipient ? ' ל' + recipient : '') + ' מחכה למטה.';
+  lastAnswer.textContent = conf;
+  announce(conf);
+  appendArchive('ai', text);
+  speak(recipient ? 'הכנתי דוח מוכן לשליחה ל' + recipient + '.' : 'הכנתי לך דוח משימות מוכן לשליחה בוואטסאפ.');
+}

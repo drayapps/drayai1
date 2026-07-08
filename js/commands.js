@@ -45,8 +45,18 @@ const HELP_TEXT = 'פקודות מקומיות (עובדות מיד, בלי מו
   + '/תיקייה — חיבור תיקייה (+יומן שיחות אוטומטי) · /קבצים · /קרא <שם קובץ> — סיכום\n'
   + '"פתח יוטיוב / גוגל / וואטסאפ" — פתיחת אתרים\n'
   + '"שלח וואטסאפ לאמא שאני אאחר" — אנסח הודעה ואתן קישור מוכן לשליחה (אפשר גם מספר: "שלח וואטסאפ ל052-1234567 …")\n'
+  + '"דוח משימות של היום" / "שלח דוח משימות של מחר לאמא" — דוח ממוספר עם שעות, מוכן לשליחה בוואטסאפ\n'
   + '/מטבע · /קובייה — כשצריך להחליט\n'
   + 'וגם: "מה השעה", "מה התאריך", ו... נסה לשאול מי המלך 👑';
+
+/* פיצול משפט דיבור לכמה משימות — רק בגבול "וגם/ואז/אחר כך/," או "ו" שלפני רמז-זמן ברור.
+   כל מקטע נבדק בנפרד; אם לא יוצאות ≥2 משימות תקינות — נופלים חזרה למשימה יחידה. */
+function splitTasks(s){
+  const TIME_CUE = 'ב-?\\d|בשעה|בעוד|היום|מחר|מחרתיים|ביום|הערב|בבוקר|בערב|בצהריים|בלילה'
+    + '|ב(?:אחת|שתיים|שתים|שניים|שלוש|ארבע|חמש|שש|שבע|שמונה|תשע|עשר|עשרה)';
+  const re = new RegExp('\\s+(?:וגם|ואז|אחר[ ]?כך|אחרי[ ]?כן)\\s+|\\s*,\\s*|\\s+(?=ו(?:' + TIME_CUE + '))');
+  return s.split(re).map(x => x.trim()).filter(Boolean);
+}
 
 /* שאלות שהמידע להן כבר נמצא כאן — נענות מקומית, בלי רשת ובלי מודל */
 async function localAnswer(raw){
@@ -140,17 +150,57 @@ async function localAnswer(raw){
     const up = listEvents(from, to);
     return { text: up.length ? 'הנה מה שמחכה לך ' + scope + ':\n' + up.map(fmtEv).join('\n') : 'אין כלום ביומן ' + scope + '. חופשי!' };
   }
+  /* --- דוח משימות יומי/שבועי מוכן לשליחה בוואטסאפ --- */
+  if (/^\/?(דוח|דו"ח)( משימות| יומי| שבועי)?$/.test(t)
+      || (/(^|\s)דו"?ח(\s|$)/.test(t) && /(משימ|יומי|שבוע|לו"?ז|וואטס|ווטס)/.test(t))
+      || /(שלח|שלחי|תשלח|צור|צרי|תכין|תכיני|הכן|הכיני)\s+(?:לי\s+)?(?:את\s+)?(?:ה)?דו"?ח/.test(t)
+      || /רשימת משימות/.test(t)) {
+    setTimeout(() => composeTaskReport(t), 0); /* אחרי הודעת המערכת — בונה ומציג קישור בעצמה */
+    return { text: 'מכינה דוח משימות… 📋', sys: true };
+  }
   /* פעלים שמפורשות מכוונים לתזכורת — גם בלי זמן מפורש נותנים הכוונה */
   const SCHED_STRONG = /^(?:אנא |בבקשה |תוכל[יה]? )?(קבעי|קבעו|תקבעי|תקבעו|תקבע|קבע|תזכירי|תזכיר|תזכורת|תתזכרו|תתזכר|תזכרי|הזכירי|הזכר|תזכור(?! ש)|טיימר|תזמני|תזמן)/; /* צורה ארוכה לפני קצרה — אחרת "קבעי" נתפס כ"קבע" */
   /* פעלים כלליים ("הוסף/רשום/שים/צור ליומן…") — נחשבים לתזמון רק אם נמצא זמן */
   const SCHED_SOFT = /^(?:אנא |בבקשה |תוכל[יה]? )?(הוסיפי|הוסף|תוסיפי|תוסיף|רשמי|רשום|תרשמי|תרשום|שימי|שים|תשימי|תשים|צרי|צור|תצור|תיצור|תכניסי|תכניס|הכנס)/;
-  const schedCue = /(ליומן|בלוח|בלו"?ז|תזכורת|אירוע|פגיש|דדליין)/.test(t);
-  const relTime = /(?:בעוד|אחרי)\s+(?:\d+|חצי|שעה|דקה|יומיים|שבוע|יום)/.test(t);
+  const schedCue = /(ליומן|בלוח|בלו"?ז|תזכורת|משימ|אירוע|פגיש|דדליין)/.test(t);
+  const relTime = /(?:בעוד|אחרי)\s+(?:\d+|חצי|שעה|שעתיים|דקה|יומיים|שבוע|יום)/.test(t);
   /* הודעת וואטסאפ שאינה תזכורת מפורשת — תטופל בבלוק הוואטסאפ, לא כאן */
   const isWhatsApp = /(וואטסאפ|ווטסאפ|וואצאפ|whatsapp)/i.test(t)
     && (/(שלח|תשלח|שלחי|כתוב|תכתוב|כתבי|נסח|תנסח|תגיד|תשדר|הודעה|הודעת)/.test(t) || t.includes(':'));
   if (!(isWhatsApp && !SCHED_STRONG.test(t))
       && (SCHED_STRONG.test(t) || ((SCHED_SOFT.test(t) || schedCue || relTime)))) {
+    /* ניקוי כותרת אחיד — מסיר פועל, זמן, רמזי-יומן ומילות קישור */
+    const taskTitle = seg => stripWhen(seg
+        .replace(SCHED_STRONG, '')
+        .replace(SCHED_SOFT, '')
+        .replace(/^\s*(לי|אותי|לנו|אותנו|לו|לה)\s+/, '')
+        .replace(/(^|\s)(תזכורת|תזכורות|משימה|משימות)(\s|$)/g, ' ')
+        .replace(/(ליומן|בלוח|בלו"?ז)\s*/g, ' ')
+      ).replace(/^\s*ו\s+/, '')
+       .replace(/^\s*(?:ש|של|את|על|לגבי)\s+/, '').trim() || 'תזכורת';
+    const refreshCal = () => { if (calendar.classList.contains('open')) { renderCalendar(); if (calSelected) selectDay(calSelected, false); } };
+
+    /* דיבור מרובה משימות: "קבעי מחר בתשע פגישה ובאחת ארוחה" → כמה אירועים ביומן */
+    const segs = splitTasks(t);
+    if (segs.length > 1) {
+      const added = [];
+      segs.forEach((seg, k) => {
+        const ts2 = parseWhen(seg);
+        if (!ts2) return;
+        events.push({ id: Date.now() + k, ts: ts2, title: taskTitle(seg), done: false });
+        added.push(events[events.length - 1]);
+      });
+      if (added.length >= 2) {
+        added.sort((a, b) => a.ts - b.ts);
+        saveEvents();
+        refreshCal();
+        askNotifyPermission();
+        return { text: 'קבעתי לך ' + added.length + ' משימות ביומן:\n' + added.map((e, i) => (i + 1) + '. ' + fmtEv(e)).join('\n'),
+          say: 'סידרתי — ' + added.length + ' משימות ביומן.' };
+      }
+      if (added.length) events = events.filter(e => !added.includes(e)); /* פחות משתיים תקינות — ביטול ומעבר למשימה יחידה */
+    }
+
     const ts = parseWhen(t);
     if (!ts) {
       /* בקשת תזכורת ברורה (פועל מפורש / פועל רך + רמז יומן / זמן יחסי) — נותנים הכוונה עדינה.
@@ -159,16 +209,9 @@ async function localAnswer(raw){
         return { text: 'לא הצלחתי להבין מתי בדיוק 🙂 אפשר למשל: "קבעי מחר ב-14:00 רופא שיניים", "תזכירי לי בעוד עשר דקות" או "תזכירי לי היום בשמונה בערב".', sys: true };
       return null;
     }
-    const title = stripWhen(t
-        .replace(SCHED_STRONG, '')
-        .replace(SCHED_SOFT, '')
-        .replace(/^\s*(לי|אותי|לנו|אותנו|לו|לה)\s+/, '')
-        .replace(/(^|\s)(תזכורת|תזכורות)(\s|$)/g, ' ')
-        .replace(/(ליומן|בלוח|בלו"?ז)\s*/g, ' ')
-      ).replace(/^\s*(?:ש|של|את|על|לגבי)\s+/, '').trim() || 'תזכורת';
-    events.push({ id: Date.now(), ts, title, done: false });
+    events.push({ id: Date.now(), ts, title: taskTitle(t), done: false });
     saveEvents();
-    if (calendar.classList.contains('open')) { renderCalendar(); if (calSelected) selectDay(calSelected, false); } /* רענון לוח אם פתוח */
+    refreshCal(); /* רענון לוח אם פתוח */
     askNotifyPermission(); /* מבקשים הרשאת התראות מערכת בקביעה הראשונה */
     const when = new Date(ts).toLocaleString('he-IL', { weekday: 'long', hour: '2-digit', minute: '2-digit' });
     return { text: 'נקבע: ' + fmtEv(events[events.length - 1]) + '. אזכיר לך בזמן — בקול ובהתראה.',
