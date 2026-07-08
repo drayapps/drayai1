@@ -10,7 +10,7 @@ function parseWhatsApp(t){
   let recipient = '';
   const rm = t.match(/(?:וואטסאפ|ווטסאפ|וואצאפ|whatsapp)\s+ל([^\s:,.]+)/i)
         || t.match(/^(?:אנא |בבקשה )?(?:שלח|תשלח|שלחי|כתוב|תכתוב|כתבי|נסח|תנסח)(?:י)?\s+(?:הודעה\s+)?ל([^\s:,.]+)/);
-  if (rm && rm[1].length >= 2 && !/^\d/.test(rm[1]) && !['שלוח','כתוב','נסח'].includes(rm[1])) recipient = rm[1];
+  if (rm && rm[1].length >= 2 && !/[\d+]/.test(rm[1]) && !['שלוח','כתוב','נסח'].includes(rm[1])) recipient = rm[1];
 
   /* טקסט מפורש — כל מה שאחרי נקודתיים נשלח כמו שהוא, בלי מודל */
   const ci = t.indexOf(':');
@@ -21,10 +21,11 @@ function parseWhatsApp(t){
     .replace(/^(?:אנא |בבקשה )?(?:שלח|תשלח|שלחי|כתוב|תכתוב|כתבי|נסח|תנסח|תגיד|תשדר|הודעה|הודעת)(?:י)?\s*/, '')
     .replace(/(?:הודעת\s+)?(?:ב)?(?:וואטסאפ|ווטסאפ|וואצאפ|whatsapp)/ig, ' ');
   if (recipient) intent = intent.replace(new RegExp('(^|\\s)ל' + recipient.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')), ' ');
-  if (number) intent = intent.replace(number, ' ');
+  if (number) intent = intent.replace(new RegExp('ל?\\s*' + number.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')), ' '); /* גם ה"ל" שלפני המספר */
   intent = intent
     .replace(/:[\s\S]*/, ' ')                                   /* את החלק המפורש כבר תפסנו */
     .replace(/^\s*(?:הודעה|לו|לה|להם|לי|אליו|אליה|אליהם)\s+/, '')
+    .replace(/^\s*ל\s+/, ' ')                                  /* "ל" יתום שנשאר לפני המספר */
     .replace(/^\s*ש(?=[א-ת])/, '')                             /* "שאני אאחר" → "אני אאחר" */
     .replace(/\s{2,}/g, ' ')
     .trim();
@@ -75,8 +76,8 @@ async function draftWhatsApp(key, intent, recipient){
       max_tokens: 200,
       temperature: 0.7,
       messages: [
-        { role: 'system', content: 'אתה מנסח הודעות וואטסאפ קצרות, טבעיות ומנומסות בעברית עבור יקיר. '
-          + 'החזר אך ורק את גוף ההודעה עצמה — בלי מרכאות, בלי הקדמה, בלי הסבר ובלי חתימה. התאם את הטון לנמען.' },
+        { role: 'system', content: 'את מנסחת הודעות וואטסאפ קצרות, טבעיות, חמות ומנומסות בעברית עבור יקיר. '
+          + 'החזירי אך ורק את גוף ההודעה עצמה — בלי מרכאות, בלי הקדמה, בלי הסבר ובלי חתימה. התאימי את הטון לנמען.' },
         { role: 'user', content: (recipient ? 'נמען: ' + recipient + '\n' : '') + 'ההודעה צריכה להעביר: ' + intent }
       ]
     })

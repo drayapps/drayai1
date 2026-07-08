@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>DRAY·AI — עוזר אישי</title>
+<title>DRAY·AI — עוזרת אישית</title>
 <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;600;800&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/base.css">
 <link rel="stylesheet" href="css/header.css">
@@ -12,6 +12,7 @@
 <link rel="stylesheet" href="css/chat.css">
 <link rel="stylesheet" href="css/dialogs.css">
 <link rel="stylesheet" href="css/responsive.css">
+<link rel="stylesheet" href="css/upgrade.css">
 </head>
 <body>
 
@@ -41,14 +42,14 @@
     <div id="stage3d" aria-hidden="true" title="לחיצה עוצרת דיבור"></div>
     <canvas id="core" width="420" height="420" title="לחיצה עוצרת דיבור" aria-hidden="true"></canvas>
     <div class="core-label" id="coreLabel">standby</div>
-    <div class="last-answer" id="lastAnswer">שלום יקיר. לחץ על המיקרופון ודבר אליי, או כתוב למטה.</div>
+    <div class="last-answer" id="lastAnswer">היי יקיר 💙 אפשר ללחוץ על המיקרופון ולדבר איתי, או פשוט לכתוב לי כאן למטה.</div>
     <div class="chips" id="chips">
       <button class="chip">מה השעה ומה התאריך?</button>
       <button class="chip">מה יש לי היום?</button>
-      <button class="chip">תן לי רעיון לארוחת ערב</button>
-      <button class="chip">ספר לי משהו מעניין</button>
+      <button class="chip">תני לי רעיון לארוחת ערב</button>
+      <button class="chip">ספרי לי משהו מעניין</button>
       <button class="chip">סטטוס מערכת</button>
-      <button class="chip">מה אתה יודע לעשות?</button>
+      <button class="chip">מה את יודעת לעשות?</button>
     </div>
   </div>
 
@@ -68,7 +69,7 @@
       <path d="M5 11a7 7 0 0 0 14 0M12 18v3"/>
     </svg>
   </button>
-  <input id="txt" type="text" placeholder="כתוב הודעה… (/עזרה לפקודות)" autocomplete="off">
+  <input id="txt" type="text" placeholder="כתבו לי הודעה… (/עזרה לפקודות)" autocomplete="off">
   <button id="sendBtn">שלח</button>
   <div class="toggles">
     <label class="voice-toggle"><input type="checkbox" id="ttsChk" checked> קול</label>
@@ -104,7 +105,7 @@
 <div id="guide" role="dialog" aria-modal="true" aria-labelledby="guideTitle">
   <div class="guide-card">
     <div class="guide-head">
-      <h2 id="guideTitle">מה DRAY·AI יודע לעשות</h2>
+      <h2 id="guideTitle">מה DRAY·AI יודעת לעשות</h2>
       <button id="closeGuide" class="hdr-btn" title="סגור" aria-label="סגירת המדריך">✕</button>
     </div>
     <div class="guide-body">
@@ -121,9 +122,17 @@
         <h3>📅 יומן ותזכורות</h3>
         <ul>
           <li>"קבע מחר ב-14:00 רופא שיניים" · "תזכיר לי בעוד 10 דקות להוציא כביסה"</li>
+          <li>מבין גם ניסוח טבעי: "תזכיר לי היום בשמונה בערב", "הוסף ליומן פגישה עם דני מחר ב-4", "בעוד חצי שעה".</li>
           <li>"מה יש לי היום / מחר / השבוע" · <code>/יומן</code> · <code>/יומן מחק 1</code></li>
           <li>"פתח לוח שנה" (או 📅) — לוח חודשי; לחיצה על יום מקריאה את אירועיו בקול.</li>
           <li>כשמגיע הזמן — תזכורת בקול והתראת מערכת, גם כשהחלון ברקע. פספסת? תקבל דוח בכניסה הבאה.</li>
+        </ul>
+      </section>
+      <section>
+        <h3>💬 וואטסאפ</h3>
+        <ul>
+          <li>"שלח וואטסאפ לאמא שאני אאחר בעשר דקות" — אנסח את ההודעה ואתן כפתור מוכן לשליחה.</li>
+          <li>עם מספר: "שלח וואטסאפ ל052-1234567 שהחבילה מוכנה" · טקסט מדויק אחרי נקודתיים: "וואטסאפ לדני: אני בדרך".</li>
         </ul>
       </section>
       <section>
@@ -170,7 +179,7 @@
   <div class="set-card">
     <h2>חיבור למוח — Groq API</h2>
     <p>
-      DRAY·AI רץ על מודל Llama 3.3 70B דרך Groq — מהיר ובחינם.
+      DRAY·AI רצה על מודל Llama 3.3 70B דרך Groq — מהיר ובחינם.
       אין לך מפתח? צור אחד ב-<a href="https://console.groq.com/keys" target="_blank" rel="noopener">console.groq.com/keys</a>.
       המפתח נשמר <b>רק במכשיר שלך</b> (localStorage) ולא נשלח לשום שרת מלבד Groq.
     </p>
@@ -179,6 +188,27 @@
     <div class="set-actions">
       <button id="saveKey">שמור</button>
       <button id="closeSet">סגור</button>
+    </div>
+
+    <div class="set-section" aria-labelledby="a11yTitle">
+      <h3 id="a11yTitle">נגישות והתאמה אישית</h3>
+      <label id="textSizeLbl">גודל טקסט</label>
+      <div class="seg" id="segText" role="group" aria-labelledby="textSizeLbl">
+        <button type="button" data-size="normal">רגיל</button>
+        <button type="button" data-size="large">גדול</button>
+        <button type="button" data-size="xl">ענק</button>
+      </div>
+      <label class="set-switch">
+        <span>הפחת אנימציות ותנועה</span>
+        <input type="checkbox" id="motionChk">
+        <span class="switch" aria-hidden="true"></span>
+      </label>
+      <label class="set-switch">
+        <span>ניגודיות גבוהה</span>
+        <input type="checkbox" id="contrastChk">
+        <span class="switch" aria-hidden="true"></span>
+      </label>
+      <p class="set-hint">ההעדפות נשמרות במכשיר וחלות בכל כניסה.</p>
     </div>
   </div>
 </div>
@@ -191,6 +221,7 @@
 <script src="js/feed.js"></script>
 <script src="js/jarvis.js"></script>
 <script src="js/reminders.js"></script>
+<script src="js/whatsapp.js"></script>
 <script src="js/commands.js"></script>
 <script src="js/voice.js"></script>
 <script src="js/brain.js"></script>

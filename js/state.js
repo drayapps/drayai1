@@ -49,6 +49,32 @@ ttsChk.onchange = () => store.set('dray_tts', ttsChk.checked ? '1' : '0');
 convChk.onchange = () => store.set('dray_conv', convChk.checked ? '1' : '0');
 
 
+/* ============ נגישות: גודל טקסט, הפחתת תנועה, ניגודיות ============ */
+const segText = document.getElementById('segText');
+const motionChk = document.getElementById('motionChk');
+const contrastChk = document.getElementById('contrastChk');
+const root = document.documentElement;
+
+function applyPrefs(){
+  const size = store.get('dray_textsize', 'normal');
+  const motion = store.get('dray_motion', 'full');
+  const contrast = store.get('dray_contrast', '0');
+  root.dataset.textsize = size;
+  root.dataset.motion = motion;
+  root.dataset.contrast = contrast === '1' ? 'high' : 'normal';
+  if (segText) segText.querySelectorAll('button').forEach(b =>
+    b.setAttribute('aria-pressed', String(b.dataset.size === size)));
+  if (motionChk) motionChk.checked = motion === 'reduced';
+  if (contrastChk) contrastChk.checked = contrast === '1';
+}
+if (segText) segText.querySelectorAll('button').forEach(b => {
+  b.onclick = () => { store.set('dray_textsize', b.dataset.size); applyPrefs(); announce('גודל טקסט: ' + b.textContent); };
+});
+if (motionChk) motionChk.onchange = () => { store.set('dray_motion', motionChk.checked ? 'reduced' : 'full'); applyPrefs(); };
+if (contrastChk) contrastChk.onchange = () => { store.set('dray_contrast', contrastChk.checked ? '1' : '0'); applyPrefs(); };
+applyPrefs();
+
+
 /* ============ הגדרות ============ */
 const settings = document.getElementById('settings');
 const keyInput = document.getElementById('keyInput');
@@ -58,7 +84,7 @@ document.getElementById('saveKey').onclick = () => {
   store.set(KEY_NAME, keyInput.value.trim());
   settings.classList.remove('open');
   if (getKey()) resolveAlertByMsg('חסר מפתח Groq — המוח מנותק');
-  lastAnswer.textContent = 'המפתח נשמר. אני מוכן — דבר אליי.';
+  lastAnswer.textContent = 'המפתח נשמר. אני מוכנה — דברו איתי.';
 };
 settings.addEventListener('click', e => { if (e.target === settings) settings.classList.remove('open'); });
 

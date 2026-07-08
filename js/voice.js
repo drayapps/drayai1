@@ -112,7 +112,7 @@ async function startListen(){
   clearTimeout(silenceTimer);
   micBtn.classList.add('rec');
   setMode(State.LISTEN);
-  showInterim('מקשיב…');
+  showInterim('מקשיבה…');
   try { rec.start(); }
   catch(e){
     /* start בזמן שסשן קודם עוד נסגר זורק InvalidStateError — מאתחלים ומנסים שוב */
@@ -139,7 +139,7 @@ function switchToWhisper(announce){
   micBtn.title = 'לחץ להקלטה, לחץ שוב לסיום';
   if (announce) {
     addMsg('sys', 'זיהוי הדיבור של הדפדפן לא זמין אצלך — עברתי למצב הקלטה עם תמלול Whisper דרך Groq.\nמעכשיו: לחץ על המיקרופון, דבר, ולחץ שוב לסיום.');
-    lastAnswer.textContent = 'לחץ על המיקרופון, דבר, ולחץ שוב לסיום — אתמלל דרך הענן.';
+    lastAnswer.textContent = 'לחץ על המיקרופון, דבר, ולחץ שוב לסיום — אתמלל לך דרך הענן.';
   }
 }
 if (voiceMode === 'whisper') micBtn.title = 'לחץ להקלטה, לחץ שוב לסיום';
@@ -199,10 +199,10 @@ async function startWhisper(){
   setMode(State.LISTEN);
   /* אין תמלול חי ב-Whisper — מציגים מונה הקלטה רץ במקום */
   recStart = Date.now();
-  showInterim('מקליט… 0:00 · לחץ שוב לסיום');
+  showInterim('מקליטה… 0:00 · לחץ שוב לסיום');
   recTick = setInterval(() => {
     const s = Math.floor((Date.now() - recStart) / 1000);
-    showInterim('מקליט… ' + Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0') + ' · לחץ שוב לסיום');
+    showInterim('מקליטה… ' + Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0') + ' · לחץ שוב לסיום');
   }, 500);
   whisperTimer = setTimeout(stopWhisper, 45000); /* עצירת בטיחות */
 }
@@ -212,7 +212,7 @@ function stopWhisper(){
 
 async function transcribe(blob){
   setMode(State.THINK);
-  lastAnswer.textContent = 'מתמלל…';
+  lastAnswer.textContent = 'מתמללת…';
   try {
     const fd = new FormData();
     fd.append('file', blob, 'speech.webm');
@@ -252,14 +252,33 @@ micBtn.onclick = () => {
 /* ============ טקסט → דיבור ============ */
 const HAS_TTS = 'speechSynthesis' in window && typeof SpeechSynthesisUtterance !== 'undefined';
 let heVoice = null;
+let heVoiceMale = false;   /* אם נבחר קול גברי (למשל Asaf בווינדוס) — נרים pitch כדי לרכך לנשי */
+
+/* רמזי מגדר בשמות קולות נפוצים */
+const VOICE_FEMALE = /(carmit|כרמית|female|woman|girl|zira|hila|הילה|efrat|אפרת|shira|שירה|noa|נועה|google)/i;
+const VOICE_MALE   = /(asaf|אסף|male\b|\bman\b|david|mark|guy)/i;
+
+/* בוחרת את הקול העברי הנעים והנשי ביותר שזמין; אם אין עברי — אנגלי כגיבוי */
 function pickVoice(){
   if (!HAS_TTS) return;
   const vs = speechSynthesis.getVoices();
-  heVoice = vs.find(v => v.lang.startsWith('he')) || vs.find(v => v.lang.startsWith('en')) || null;
-  if (vs.length) {
-    if (heVoice && heVoice.lang.startsWith('he')) resolveAlertByMsg('לא נמצא קול עברי במערכת');
-    else addAlert(2, 'לא נמצא קול עברי במערכת', 'התשובות יוקראו באנגלית או ללא הקראה');
-  }
+  if (!vs.length) return;
+  const score = v => {
+    const name = v.name || '';
+    let s = 0;
+    if (v.lang && v.lang.toLowerCase().startsWith('he')) s += 100;
+    else if (v.lang && v.lang.toLowerCase().startsWith('en')) s += 5;
+    if (VOICE_FEMALE.test(name)) s += 45;
+    if (VOICE_MALE.test(name)) s -= 35;
+    if (v.localService === false) s += 12;   /* קולות רשת (Google) בד"כ טבעיים ונשיים יותר */
+    return s;
+  };
+  const ranked = vs.slice().sort((a, b) => score(b) - score(a));
+  const best = ranked[0];
+  heVoice = (best && score(best) > 0) ? best : null;
+  heVoiceMale = !!(heVoice && VOICE_MALE.test(heVoice.name) && !VOICE_FEMALE.test(heVoice.name));
+  if (heVoice && heVoice.lang.toLowerCase().startsWith('he')) resolveAlertByMsg('לא נמצא קול עברי במערכת');
+  else addAlert(2, 'לא נמצא קול עברי במערכת', 'התשובות יוקראו באנגלית או ללא הקראה — מומלץ להתקין קול עברי');
 }
 if (HAS_TTS) {
   pickVoice();
@@ -326,7 +345,9 @@ function speak(text, onDone){
   const u = new SpeechSynthesisUtterance(text);
   if (heVoice) u.voice = heVoice;
   u.lang = 'he-IL';
-  u.rate = 1.02; u.pitch = 0.95;
+  /* קול נשי, עדין ורגוע. על קול גברי (Asaf) מרימים pitch כדי לרכך לכיוון נשי */
+  u.rate = 0.98;
+  u.pitch = heVoiceMale ? 1.35 : 1.14;
   /* כתוביות רק כשהטקסט המדובר הוא מה שמוצג במרכז המסך */
   const cap = text.trim() === lastAnswer.textContent.trim() ? startCaption(text) : null;
   u.onstart = () => setMode(State.SPEAK);

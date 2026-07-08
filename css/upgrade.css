@@ -1,0 +1,208 @@
+/* ==========================================================================
+   שדרוג: נגישות (גודל טקסט / תנועה / ניגודיות) + ריענון עיצובי נועז ליומן
+   נטען אחרון — גובר על הבסיס במכוון.
+   ========================================================================== */
+
+/* ===== גודל טקסט מתכוונן ===== */
+:root { --tscale: 1; }
+[data-textsize="large"] { --tscale: 1.15; }
+[data-textsize="xl"]    { --tscale: 1.32; }
+
+.last-answer            { font-size: calc(16px * var(--tscale)); }
+.msg                    { font-size: calc(13.5px * var(--tscale)); }
+.msg.sys                { font-size: calc(12.5px * var(--tscale)); }
+#txt                    { font-size: calc(15px * var(--tscale)); }
+.cal-cell               { font-size: calc(13.5px * var(--tscale)); }
+.cal-head h2            { font-size: calc(18px * var(--tscale)); }
+.cal-de-title           { font-size: calc(13px * var(--tscale)); }
+.cal-de-empty           { font-size: calc(13px * var(--tscale)); }
+.cal-ev-title           { font-size: calc(13.5px * var(--tscale)); }
+.cal-ev-time            { font-size: calc(12px * var(--tscale)); }
+.cal-edit-in            { font-size: calc(13.5px * var(--tscale)); }
+.guide-body li          { font-size: calc(13px * var(--tscale)); }
+.guide-body h3          { font-size: calc(13.5px * var(--tscale)); }
+.set-card p, .set-card label { font-size: calc(12.5px * var(--tscale)); }
+.wa-send-btn            { font-size: calc(13.5px * var(--tscale)); }
+
+/* ===== הפחתת תנועה (בחירת משתמש) ===== */
+[data-motion="reduced"] *,
+[data-motion="reduced"] *::before,
+[data-motion="reduced"] *::after {
+  animation-duration: .001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: .001ms !important;
+  scroll-behavior: auto !important;
+}
+
+/* ===== ניגודיות גבוהה (בחירת משתמש) ===== */
+[data-contrast="high"] {
+  --text: #ffffff;
+  --ice: #ffffff;
+  --muted: #cfe8f6;
+  --line: rgba(130, 225, 255, .55);
+}
+[data-contrast="high"] .msg.ai      { background: #0b2033; }
+[data-contrast="high"] .msg.user    { background: rgba(79, 216, 255, .18); }
+[data-contrast="high"] .cal-cell    { background: rgba(79, 216, 255, .1); }
+[data-contrast="high"] .cal-cell.past { opacity: .72; }
+[data-contrast="high"] .muted,
+[data-contrast="high"] .core-label  { color: #cfe8f6; }
+[data-contrast="high"] :focus-visible { outline-width: 3px; }
+
+/* ===== נגישות: מקטע הגדרות ===== */
+.set-section {
+  margin-top: 22px;
+  border-top: 1px solid var(--line);
+  padding-top: 18px;
+}
+.set-section h3 {
+  font-size: calc(14px * var(--tscale));
+  font-weight: 800;
+  color: var(--cyan);
+  margin-bottom: 12px;
+}
+.seg {
+  display: flex; gap: 6px;
+  background: rgba(8, 18, 30, .7);
+  border: 1px solid var(--line);
+  border-radius: 11px; padding: 4px;
+  margin: 6px 0 16px;
+}
+.seg button {
+  flex: 1; border: none; background: none;
+  color: var(--muted); border-radius: 8px;
+  padding: 10px 8px; min-height: 42px;
+  font-family: 'Heebo', sans-serif; font-size: calc(13px * var(--tscale)); font-weight: 600;
+  cursor: pointer;
+  transition: color 160ms ease, background 200ms var(--ease-out), transform 120ms var(--ease-out);
+}
+.seg button:active { transform: scale(.96); }
+.seg button[aria-pressed="true"] {
+  background: linear-gradient(180deg, var(--cyan), #38b6e0);
+  color: #04121c;
+  box-shadow: 0 4px 14px rgba(79, 216, 255, .28);
+}
+@media (hover: hover) and (pointer: fine) {
+  .seg button:not([aria-pressed="true"]):hover { color: var(--ice); background: rgba(79, 216, 255, .08); }
+}
+
+.set-switch {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; margin: 12px 0; cursor: pointer;
+  font-size: calc(13px * var(--tscale)); color: var(--text);
+}
+.set-switch input {
+  position: absolute; opacity: 0; width: 0; height: 0; /* נגיש למקלדת, מוסתר חזותית */
+}
+.set-switch .switch {
+  position: relative; flex: none;
+  width: 46px; height: 27px; border-radius: 999px;
+  background: rgba(8, 18, 30, .9); border: 1px solid var(--line);
+  transition: background 200ms var(--ease-out), border-color 200ms ease;
+}
+.set-switch .switch::after {
+  content: ''; position: absolute; top: 2px; inset-inline-start: 2px;
+  width: 21px; height: 21px; border-radius: 50%; background: var(--muted);
+  transition: transform 220ms var(--ease-out), background 200ms ease;
+}
+.set-switch input:checked + .switch { background: linear-gradient(180deg, var(--cyan), #38b6e0); border-color: transparent; }
+.set-switch input:checked + .switch::after { transform: translateX(-19px); background: #04121c; }
+.set-switch input:focus-visible + .switch { outline: 2px solid var(--cyan); outline-offset: 2px; }
+.set-hint { margin-top: 12px; font-size: 11.5px; color: var(--muted); }
+
+/* ==========================================================================
+   ריענון נועז — לוח השנה והתזכורות
+   ========================================================================== */
+.cal-card {
+  background: linear-gradient(180deg, #0c1a2a 0%, #070f18 100%);
+  border-color: rgba(79, 216, 255, .28);
+  border-radius: 20px;
+  box-shadow: 0 26px 80px rgba(0, 0, 0, .55), 0 0 60px rgba(79, 216, 255, .10);
+}
+.cal-head { padding: 18px 22px 14px; }
+.cal-head h2 {
+  font-weight: 800; letter-spacing: .01em;
+  background: linear-gradient(90deg, var(--ice), var(--cyan));
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.cal-cell { border-radius: 11px; }
+.cal-cell.today {
+  border-color: var(--cyan); color: var(--cyan); font-weight: 700;
+  box-shadow: inset 0 0 14px rgba(79, 216, 255, .22);
+}
+.cal-cell.selected {
+  background: linear-gradient(180deg, rgba(79, 216, 255, .3), rgba(79, 216, 255, .12));
+  border-color: var(--cyan);
+  box-shadow: 0 0 18px rgba(79, 216, 255, .28);
+}
+.cal-cell.has-ev::after { box-shadow: 0 0 8px rgba(255, 184, 79, .8); width: 6px; height: 6px; }
+
+.cal-day-events { padding: 16px 20px 20px; }
+.cal-de-title {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  color: var(--ice); font-weight: 700; margin-bottom: 14px;
+}
+.cal-add-btn {
+  display: inline-flex; align-items: center; gap: 5px; flex: none;
+  background: linear-gradient(180deg, #5fe0ff, #38b6e0); color: #04121c;
+  border: none; border-radius: 999px; padding: 8px 15px; min-height: 38px;
+  font-family: 'Heebo', sans-serif; font-weight: 700; font-size: calc(12.5px * var(--tscale));
+  cursor: pointer; box-shadow: 0 5px 16px rgba(79, 216, 255, .3);
+  transition: transform 140ms var(--ease-out), filter 200ms ease;
+}
+.cal-add-btn:active { transform: scale(.95); }
+.cal-add-btn span[aria-hidden] { font-size: 1.25em; line-height: 0; }
+@media (hover: hover) and (pointer: fine) {
+  .cal-add-btn:hover { filter: brightness(1.08); }
+}
+
+.cal-ev {
+  gap: 12px; padding: 12px 15px 12px 14px; border-radius: 14px;
+  background: linear-gradient(180deg, rgba(79, 216, 255, .09), rgba(79, 216, 255, .028));
+  border: 1px solid var(--line); position: relative; overflow: hidden;
+  margin-bottom: 8px;
+}
+.cal-ev::before {
+  content: ''; position: absolute; inset-block: 0; inset-inline-start: 0;
+  width: 3px; background: linear-gradient(var(--cyan), var(--cyan-dim));
+}
+@media (hover: hover) and (pointer: fine) {
+  .cal-ev:not(.editing):hover { border-color: var(--cyan-dim); background: linear-gradient(180deg, rgba(79, 216, 255, .13), rgba(79, 216, 255, .04)); }
+}
+.cal-ev-time {
+  background: rgba(79, 216, 255, .12); padding: 3px 9px; border-radius: 8px;
+  color: var(--cyan); font-weight: 600;
+}
+
+/* כפתורי אייקון אחידים — יעד מגע נגיש (32px, 40px בעריכה) */
+.cal-icon-btn {
+  background: rgba(8, 18, 30, .55); border: 1px solid var(--line); color: var(--muted);
+  border-radius: 9px; width: 34px; height: 34px; flex: none; cursor: pointer;
+  font-size: 15px; display: grid; place-items: center; line-height: 1;
+  transition: color 150ms ease, border-color 150ms ease, background 150ms ease, transform 120ms var(--ease-out);
+}
+.cal-icon-btn:active { transform: scale(.9); }
+@media (hover: hover) and (pointer: fine) {
+  .cal-ev-edit:hover   { color: var(--cyan); border-color: var(--cyan-dim); background: rgba(79, 216, 255, .1); }
+  .cal-ev-del:hover    { color: var(--amber); border-color: rgba(255, 184, 79, .5); }
+  .cal-ev-cancel:hover { color: var(--amber); border-color: rgba(255, 184, 79, .5); }
+  .cal-ev-save:hover   { filter: brightness(1.09); }
+}
+.cal-ev-save { background: #25d366; color: #04121c; border-color: transparent; font-size: 16px; }
+
+/* שורת עריכה/הוספה */
+.cal-ev.editing { flex-direction: column; align-items: stretch; gap: 10px; }
+.cal-ev.editing::before { background: var(--cyan); }
+.cal-edit-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.cal-edit-title { grid-column: 1 / -1; }
+.cal-edit-in {
+  width: 100%; min-height: 44px;
+  background: rgba(6, 14, 24, .95); border: 1px solid var(--line); border-radius: 10px;
+  padding: 10px 13px; color: var(--text); font-family: 'Heebo', sans-serif; outline: none;
+  transition: border-color 200ms ease, box-shadow 200ms ease;
+}
+.cal-edit-in:focus { border-color: var(--cyan); box-shadow: 0 0 12px rgba(79, 216, 255, .16); }
+.cal-edit-in::placeholder { color: var(--muted); }
+.cal-edit-date, .cal-edit-time { direction: ltr; text-align: center; color-scheme: dark; font-family: 'Share Tech Mono', monospace; }
+.cal-edit-acts { display: flex; gap: 8px; justify-content: flex-end; }
+.cal-edit-acts .cal-icon-btn { width: 44px; height: 44px; font-size: 17px; }

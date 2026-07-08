@@ -69,17 +69,17 @@ async function localAnswer(raw){
   if (/^\/?(בריאות|בדיקה|health)$/i.test(t)) return { text: healthDetail(), sys: true };
   if (/^\/?(התראות|alerts)$/i.test(t)) { alertsPanel.classList.add('open'); return { text: alertsToText(), sys: true }; }
   if (/^\/?(עזרה|help)$/i.test(t)) return { text: HELP_TEXT, sys: true };
-  if (/^\/?(מדריך|guide)$/i.test(t) || /^מה אתה (יודע|יכול) לעשות$/.test(t)) {
+  if (/^\/?(מדריך|guide)$/i.test(t) || /^מה את(?:ה)? (יודעת?|יכולה?) לעשות$/.test(t)) {
     openGuide();
-    return { text: 'פתחתי את המדריך — כל מה שאני יודע לעשות, במסך אחד.', sys: true, say: 'הנה כל מה שאני יודע לעשות.' };
+    return { text: 'פתחתי את המדריך — כל מה שאני יודעת לעשות, במסך אחד.', sys: true, say: 'הנה כל מה שאני יודעת לעשות.' };
   }
-  if (/^\/?(לוח שנה|לוח|יומן חזותי|calendar)$/i.test(t) || /^(פתח|הצג|תפתח|תציג)( לי)?( את)? (ה)?(לוח שנה|לוח|יומן)$/.test(t)) {
+  if (/^\/?(לוח שנה|לוח|יומן חזותי|calendar)$/i.test(t) || /^(פתח|פתחי|הצג|הצגי|תפתח|תפתחי|תציג|תציגי)( לי)?( את)? (ה)?(לוח שנה|לוח|יומן)$/.test(t)) {
     openCalendar(true);
     return { text: 'פתחתי את לוח השנה.', sys: true };
   }
 
   /* --- זיכרון ארוך טווח --- */
-  const rm = t.match(/^תזכור ש(.+)$/);
+  const rm = t.match(/^(?:תזכור|תזכרי) ש(.+)$/);
   if (rm) {
     facts.push(rm[1].trim());
     saveFacts();
@@ -99,7 +99,7 @@ async function localAnswer(raw){
     store.set('dray_archive', '[]');
     return { text: 'הזיכרון ארוך הטווח נמחק כולו — עובדות וארכיון.', sys: true };
   }
-  if (/^(מה אתה זוכר( עליי| עלי)?|\/?זיכרון)$/.test(t)) {
+  if (/^(מה את(?:ה)? זוכר(?:ת)?( עליי| עלי)?|\/?זיכרון)$/.test(t)) {
     return { text: 'זיכרון ארוך טווח\n'
       + 'ארכיון: ' + archive.length + ' הודעות מכל הזמנים (נשמר גם אחרי "נקה")\n'
       + 'יומן קובץ: ' + (fileLogOk === true ? 'פעיל — DRAY-LOG.md בתיקייה המחוברת'
@@ -111,7 +111,7 @@ async function localAnswer(raw){
   if (/^\/?(ייצוא|יצוא|export)$/i.test(t)) {
     if (!archive.length) return { text: 'אין עדיין שיחות לייצוא.', sys: true };
     exportLog();
-    return { text: 'מוריד את DRAY-LOG.md — כל ' + archive.length + ' ההודעות מהארכיון.', sys: true };
+    return { text: 'מורידה את DRAY-LOG.md — כל ' + archive.length + ' ההודעות מהארכיון.', sys: true };
   }
 
   /* --- יומן --- */
@@ -141,17 +141,22 @@ async function localAnswer(raw){
     return { text: up.length ? 'הנה מה שמחכה לך ' + scope + ':\n' + up.map(fmtEv).join('\n') : 'אין כלום ביומן ' + scope + '. חופשי!' };
   }
   /* פעלים שמפורשות מכוונים לתזכורת — גם בלי זמן מפורש נותנים הכוונה */
-  const SCHED_STRONG = /^(?:אנא |בבקשה |תוכל[יה]? )?(קבע|קבעי|תקבע|תקבעי|תזכירי|תזכיר|תזכורת|תתזכרו|תתזכר|תזכרי|הזכירי|הזכר|תזכור(?! ש)|טיימר|תזמן|תזמני|קבעו)/; /* ארוך לפני קצר */
+  const SCHED_STRONG = /^(?:אנא |בבקשה |תוכל[יה]? )?(קבעי|קבעו|תקבעי|תקבעו|תקבע|קבע|תזכירי|תזכיר|תזכורת|תתזכרו|תתזכר|תזכרי|הזכירי|הזכר|תזכור(?! ש)|טיימר|תזמני|תזמן)/; /* צורה ארוכה לפני קצרה — אחרת "קבעי" נתפס כ"קבע" */
   /* פעלים כלליים ("הוסף/רשום/שים/צור ליומן…") — נחשבים לתזמון רק אם נמצא זמן */
-  const SCHED_SOFT = /^(?:אנא |בבקשה |תוכל[יה]? )?(הוסף|תוסיף|הוסיפי|רשום|תרשום|רשמי|שים|תשים|שימי|צור|תצור|תיצור|צרי|תכניס|תכניסי|הכנס)/;
+  const SCHED_SOFT = /^(?:אנא |בבקשה |תוכל[יה]? )?(הוסיפי|הוסף|תוסיפי|תוסיף|רשמי|רשום|תרשמי|תרשום|שימי|שים|תשימי|תשים|צרי|צור|תצור|תיצור|תכניסי|תכניס|הכנס)/;
   const schedCue = /(ליומן|בלוח|בלו"?ז|תזכורת|אירוע|פגיש|דדליין)/.test(t);
   const relTime = /(?:בעוד|אחרי)\s+(?:\d+|חצי|שעה|דקה|יומיים|שבוע|יום)/.test(t);
-  if (SCHED_STRONG.test(t) || ((SCHED_SOFT.test(t) || schedCue || relTime))) {
+  /* הודעת וואטסאפ שאינה תזכורת מפורשת — תטופל בבלוק הוואטסאפ, לא כאן */
+  const isWhatsApp = /(וואטסאפ|ווטסאפ|וואצאפ|whatsapp)/i.test(t)
+    && (/(שלח|תשלח|שלחי|כתוב|תכתוב|כתבי|נסח|תנסח|תגיד|תשדר|הודעה|הודעת)/.test(t) || t.includes(':'));
+  if (!(isWhatsApp && !SCHED_STRONG.test(t))
+      && (SCHED_STRONG.test(t) || ((SCHED_SOFT.test(t) || schedCue || relTime)))) {
     const ts = parseWhen(t);
     if (!ts) {
-      /* רק בקשת תזכורת מפורשת חוטפת את הפקודה; פועל רך בלי זמן — שהמוח יטפל */
-      if (SCHED_STRONG.test(t) || relTime)
-        return { text: 'לא הבנתי מתי. נסה: "קבע מחר ב-14:00 רופא שיניים", "תזכיר לי בעוד 10 דקות" או "תזכיר לי היום בשמונה בערב".', sys: true };
+      /* בקשת תזכורת ברורה (פועל מפורש / פועל רך + רמז יומן / זמן יחסי) — נותנים הכוונה עדינה.
+         פועל רך בלי הקשר יומן — שהמוח יטפל בטבעיות */
+      if (SCHED_STRONG.test(t) || relTime || (SCHED_SOFT.test(t) && schedCue))
+        return { text: 'לא הצלחתי להבין מתי בדיוק 🙂 אפשר למשל: "קבעי מחר ב-14:00 רופא שיניים", "תזכירי לי בעוד עשר דקות" או "תזכירי לי היום בשמונה בערב".', sys: true };
       return null;
     }
     const title = stripWhen(t
@@ -190,7 +195,7 @@ async function localAnswer(raw){
     const names = await listDirNames(r.dir);
     return { text: names.length ? 'בתיקייה "' + r.dir.name + '":\n' + names.slice(0, 40).join('\n') : 'התיקייה ריקה.', sys: true };
   }
-  const rd = t.match(/^\/?קרא (?:את )?(.+)$/);
+  const rd = t.match(/^\/?(?:קרא|קראי) (?:את )?(.+)$/);
   if (rd) {
     const r = await getDir();
     if (r.err) return { text: r.err, sys: true };
@@ -204,7 +209,7 @@ async function localAnswer(raw){
       return { text: 'אני קורא רק קבצי טקסט (txt, md, json, csv וכו\') — "' + file.name + '" לא נתמך.', sys: true };
     const f = await file.getFile();
     const content = (await f.text()).slice(0, 4000);
-    return { text: 'קראתי את "' + file.name + '" — מעביר למוח לסיכום…', sys: true,
+    return { text: 'קראתי את "' + file.name + '" — מעבירה למוח לסיכום…', sys: true,
       chain: { prompt: 'סכם לי בקצרה את הקובץ "' + file.name + '"', ctx: content } };
   }
 
@@ -212,21 +217,21 @@ async function localAnswer(raw){
   /* חייב פועל שליחה/כתיבה או נקודתיים — כדי ש"פתח וואטסאפ" יישאר פתיחת אתר בלבד */
   if (/(וואטסאפ|ווטסאפ|וואצאפ|whatsapp)/i.test(t)
       && (/(שלח|תשלח|שלחי|כתוב|תכתוב|כתבי|נסח|תנסח|תגיד|תשדר|הודעה|הודעת)/.test(t) || t.includes(':'))) {
-    composeWhatsApp(parseWhatsApp(t)); /* אסינכרוני — מנסח ומציג קישור בעצמו */
-    return { text: 'מנסח הודעת וואטסאפ… ✍️', sys: true };
+    setTimeout(() => composeWhatsApp(parseWhatsApp(t)), 0); /* אחרי הודעת המערכת — מנסחת ומציגה קישור בעצמה */
+    return { text: 'מנסחת הודעת וואטסאפ… ✍️', sys: true };
   }
 
   /* --- פתיחת אתרים --- */
-  const op = t.match(/^פתח (?:לי )?(?:את )?(.+)$/);
+  const op = t.match(/^(?:פתח|פתחי|תפתח|תפתחי) (?:לי )?(?:את )?(.+)$/);
   if (op) {
     const sites = { 'יוטיוב': ['YouTube', 'https://youtube.com'], 'גוגל': ['Google', 'https://google.com'],
       "ג'ימייל": ['Gmail', 'https://mail.google.com'], 'מייל': ['Gmail', 'https://mail.google.com'],
       'וואטסאפ': ['WhatsApp', 'https://web.whatsapp.com'], 'מפות': ['מפות Google', 'https://maps.google.com'],
       'ספוטיפיי': ['Spotify', 'https://open.spotify.com'] };
     const target = op[1].trim();
-    for (const k in sites) if (target.includes(k)) { window.open(sites[k][1], '_blank'); return { text: 'פותח את ' + sites[k][0] + '.', say: 'פותח ' + sites[k][0] }; }
+    for (const k in sites) if (target.includes(k)) { window.open(sites[k][1], '_blank'); return { text: 'פותחת את ' + sites[k][0] + '.', say: 'פותחת ' + sites[k][0] }; }
     const dom = target.match(/^([\w-]+\.[a-z]{2,}(?:\.[a-z]{2,})?)$/i);
-    if (dom) { window.open('https://' + dom[1], '_blank'); return { text: 'פותח את ' + dom[1] + '.' }; }
+    if (dom) { window.open('https://' + dom[1], '_blank'); return { text: 'פותחת את ' + dom[1] + '.' }; }
   }
 
   /* --- כיף --- */
