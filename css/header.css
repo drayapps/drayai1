@@ -1,0 +1,106 @@
+/* ==========================================================================
+   חלק 2: Header (סרגל ניווט עליון) ואלמנטים קבועים
+   ========================================================================== */
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 22px;
+  border-bottom: 1px solid var(--line);
+  backdrop-filter: blur(6px);
+  z-index: 5;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.brand .dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--cyan);
+  box-shadow: 0 0 10px var(--cyan);
+  animation: blink 2.4s infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: .35; }
+}
+
+.brand h1 {
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: .14em;
+}
+
+.brand h1 span {
+  color: var(--cyan);
+}
+
+.hdr-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.status {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 12px;
+  color: var(--muted);
+  direction: ltr;
+  text-align: left;
+  cursor: pointer;
+}
+
+.status b {
+  color: var(--cyan);
+  font-weight: 400;
+  transition: color 300ms ease;
+}
+
+.status b.alert {
+  color: var(--amber);
+}
+
+#clock {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 12px;
+  color: var(--muted);
+  direction: ltr;
+  letter-spacing: .1em;
+}
+
+.hdr-btn {
+  background: none;
+  border: 1px solid var(--line);
+  color: var(--muted);
+  width: 32px;
+  height: 32px;
+  flex: none;                 /* לא מתכווצים בכותרת צפופה במובייל */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 15px;
+  transition: color 150ms ease, border-color 150ms ease, transform 120ms var(--ease-out);
+}
+
+.hdr-btn:active {
+  transform: scale(0.94);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .hdr-btn:hover {
+    color: var(--cyan);
+    border-color: var(--cyan-dim);
+  }
+}
+
+#chatBtn {
+  display: none;
+}

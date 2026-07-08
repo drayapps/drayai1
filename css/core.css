@@ -1,0 +1,93 @@
+/* ==========================================================================
+   חלק 4: אזור הליבה המרכזי ותצוגת תשובות
+   ========================================================================== */
+main {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
+
+.core-zone {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  min-width: 0;
+}
+
+#core {
+  display: block;
+  cursor: pointer;
+}
+
+#stage3d {
+  display: none;
+  cursor: pointer;
+  line-height: 0;
+}
+
+#stage3d canvas {
+  display: block;
+}
+
+body.use3d #core {
+  display: none;
+}
+
+body.use3d #stage3d {
+  display: block;
+}
+
+.core-label {
+  margin-top: 6px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 13px;
+  letter-spacing: .3em;
+  color: var(--cyan-dim);
+  text-transform: uppercase;
+  direction: ltr;
+  min-height: 18px;
+  transition: color 300ms ease, text-shadow 300ms ease;
+}
+
+.core-label.active {
+  color: var(--cyan);
+  text-shadow: 0 0 12px rgba(79, 216, 255, .6);
+}
+
+.last-answer {
+  max-width: 560px;
+  margin-top: 18px;
+  padding: 0 24px;
+  text-align: center;
+  font-size: 16px;
+  line-height: 1.7;
+  color: var(--ice);
+  max-height: 130px;
+  overflow-y: auto;
+}
+
+.last-answer .w {
+  opacity: .26;
+  transition: opacity 200ms var(--ease-out), color 200ms ease, text-shadow 200ms ease;
+}
+
+.last-answer .w.lit {
+  opacity: 1;
+}
+
+.last-answer .w.now {
+  color: #fff;
+  text-shadow: 0 0 14px rgba(79, 216, 255, .75);
+}
+
+.last-answer.interim {
+  color: var(--muted);
+}
+
+.last-answer.interim::before {
+  content: '🎙 ';
+  opacity: .7;
+}

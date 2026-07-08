@@ -2,10 +2,16 @@
 <html lang="he" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>DRAY·AI — עוזר אישי</title>
 <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;600;800&family=Share+Tech+Mono&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/header.css">
+<link rel="stylesheet" href="css/alerts.css">
+<link rel="stylesheet" href="css/core.css">
+<link rel="stylesheet" href="css/chat.css">
+<link rel="stylesheet" href="css/dialogs.css">
+<link rel="stylesheet" href="css/responsive.css">
 </head>
 <body>
 
@@ -178,6 +184,15 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<script src="script.js"></script>
+<!-- מודולים בסדר טעינה (scope גלובלי משותף — הסדר חשוב) -->
+<script src="js/state.js"></script>
+<script src="js/calendar.js"></script>
+<script src="js/avatar.js"></script>
+<script src="js/feed.js"></script>
+<script src="js/jarvis.js"></script>
+<script src="js/reminders.js"></script>
+<script src="js/commands.js"></script>
+<script src="js/voice.js"></script>
+<script src="js/brain.js"></script>
 </body>
 </html>
