@@ -21,11 +21,13 @@
   padding: 0;
 }
 
-/* קישור דילוג לתוכן + רכיבים לקוראי מסך בלבד */
+/* קישור דילוג לתוכן + רכיבים לקוראי מסך בלבד.
+   מוסתר אנכית (מעל הקצה) ולא אופקית — הסתרה אופקית עם -9999px מותחת את הדף
+   ב-RTL לרוחב עצום וגורמת לזום-אאוט במובייל. */
 .skip-link {
   position: fixed;
-  top: 10px;
-  inset-inline-start: -9999px;
+  top: -80px;
+  inset-inline-start: 12px;
   z-index: 100;
   background: var(--cyan);
   color: #04121c;
@@ -34,10 +36,11 @@
   font-weight: 600;
   font-size: 14px;
   text-decoration: none;
+  transition: top 160ms var(--ease-out);
 }
 
 .skip-link:focus {
-  inset-inline-start: 10px;
+  top: 12px;
 }
 
 .sr-only {
@@ -72,6 +75,8 @@ main:focus {
 
 html, body {
   height: 100%;
+  overflow-x: hidden;      /* הגנה מפני גלישה אופקית מקרית במובייל */
+  max-width: 100%;
 }
 
 body {

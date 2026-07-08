@@ -26,10 +26,13 @@ main {
   display: none;
   cursor: pointer;
   line-height: 0;
+  overflow: hidden;
 }
 
 #stage3d canvas {
   display: block;
+  width: 100% !important;    /* הקנבס תמיד ממלא את ה-div, גם ב-retina */
+  height: 100% !important;
 }
 
 body.use3d #core {

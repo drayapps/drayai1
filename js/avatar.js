@@ -208,7 +208,7 @@ function initAvatar3D(){
   function sizeStage(){
     const s = Math.min(window.innerWidth * 0.72, window.innerHeight * 0.46, 440);
     stage.style.width = stage.style.height = s + 'px';
-    renderer.setSize(s, s, false);
+    renderer.setSize(s, s); /* updateStyle=true — ה-CSS של הקנבס = s (במקום s×DPR שגרם לקנבס כפול ב-retina) */
   }
   sizeStage();
   addEventListener('resize', sizeStage);
