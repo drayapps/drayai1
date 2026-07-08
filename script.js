@@ -87,10 +87,165 @@ guide.addEventListener('keydown', e => {
   else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
 });
 
+/* ============ לוח שנה חזותי — דיאלוג נגיש ============ */
+const calendar = document.getElementById('calendar');
+const calGrid = document.getElementById('calGrid');
+const calTitle = document.getElementById('calTitle');
+const calDayEvents = document.getElementById('calDayEvents');
+const HE_MONTHS = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
+const HE_DOW = ['א׳','ב׳','ג׳','ד׳','ה׳','ו׳','ש׳'];
+let calView = new Date();       /* החודש המוצג */
+let calSelected = null;         /* היום הנבחר (Date) */
+let calReturnFocus = null;
+
+const dayStart = d => { const x = new Date(d); x.setHours(0, 0, 0, 0); return x.getTime(); };
+/* כל אירועי היומן ליום מסוים (כולל שכבר "נורו") — לוח שנה מציג הכול */
+function eventsOnDay(ts){
+  const from = dayStart(ts), to = from + 86400000;
+  return events.filter(e => e.ts >= from && e.ts < to).sort((a, b) => a.ts - b.ts);
+}
+
+/* animate=true רק כשמגיע תוכן חדש (פתיחה / מעבר חודש); בבחירת יום או מחיקה — בלי כניסה מחדש */
+function renderCalendar(animate){
+  const y = calView.getFullYear(), m = calView.getMonth();
+  calTitle.textContent = HE_MONTHS[m] + ' ' + y;
+  calGrid.innerHTML = '';
+  HE_DOW.forEach(d => {
+    const h = document.createElement('div');
+    h.className = 'cal-dow';
+    h.textContent = d;
+    calGrid.appendChild(h);
+  });
+  const first = new Date(y, m, 1).getDay();      /* 0=ראשון */
+  const days = new Date(y, m + 1, 0).getDate();
+  const todayTs = dayStart(Date.now());
+  const selTs = calSelected ? dayStart(calSelected) : null;
+  for (let i = 0; i < first; i++) {
+    const b = document.createElement('div');
+    b.className = 'cal-cell blank';
+    calGrid.appendChild(b);
+  }
+  for (let d = 1; d <= days; d++) {
+    const ts = dayStart(new Date(y, m, d));
+    const cell = document.createElement('button');
+    cell.className = 'cal-cell';
+    cell.textContent = d;
+    cell.dataset.ts = ts;
+    if (animate) {
+      /* סטגר לפי שורות — מטאטא מלמעלה למטה, 40ms/שורה (בתוך טווח 30–80) */
+      const row = Math.floor((first + d - 1) / 7);
+      cell.style.animationDelay = Math.min(row * 40, 200) + 'ms';
+    } else {
+      cell.style.animation = 'none'; /* רה-רנדר בתוך אותו חודש — בלי כניסה שמשתחזרת */
+    }
+    const evs = eventsOnDay(ts);
+    if (evs.length) {
+      cell.classList.add('has-ev');
+      cell.setAttribute('aria-label', d + ' ב' + HE_MONTHS[m] + ', ' + evs.length + ' אירועים');
+    } else {
+      cell.setAttribute('aria-label', d + ' ב' + HE_MONTHS[m]);
+    }
+    if (ts === todayTs) cell.classList.add('today');
+    if (ts < todayTs) cell.classList.add('past');
+    if (selTs && ts === selTs) cell.classList.add('selected');
+    cell.onclick = () => selectDay(new Date(y, m, d), true);
+    calGrid.appendChild(cell);
+  }
+}
+
+/* עדכון היום הנבחר במקום — בלי לבנות מחדש את הרשת */
+function markSelected(ts){
+  calGrid.querySelectorAll('.cal-cell.selected').forEach(c => c.classList.remove('selected'));
+  const cell = calGrid.querySelector('.cal-cell[data-ts="' + ts + '"]');
+  if (cell) cell.classList.add('selected');
+}
+
+/* בחירת יום — מציג את אירועיו ומקריא אותם בקול. לא בונה מחדש את הרשת. */
+function selectDay(date, speakOut){
+  calSelected = date;
+  markSelected(dayStart(date));
+  const evs = eventsOnDay(date.getTime());
+  const label = date.toLocaleDateString('he-IL', { weekday: 'long', day: 'numeric', month: 'long' });
+  calDayEvents.innerHTML = '';
+  const head = document.createElement('div');
+  head.className = 'cal-de-title';
+  head.textContent = label;
+  calDayEvents.appendChild(head);
+  if (!evs.length) {
+    const e = document.createElement('div');
+    e.className = 'cal-de-empty';
+    e.textContent = 'אין אירועים ביום זה.';
+    calDayEvents.appendChild(e);
+  } else {
+    evs.forEach(ev => {
+      const row = document.createElement('div');
+      row.className = 'cal-ev';
+      const tm = document.createElement('span');
+      tm.className = 'cal-ev-time';
+      tm.textContent = new Date(ev.ts).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
+      const ti = document.createElement('span');
+      ti.className = 'cal-ev-title';
+      ti.textContent = ev.title;
+      const del = document.createElement('button');
+      del.className = 'cal-ev-del';
+      del.textContent = '✕';
+      del.setAttribute('aria-label', 'מחק את ' + ev.title);
+      del.onclick = () => {
+        events = events.filter(x => x !== ev);
+        saveEvents();
+        renderCalendar(false); /* עדכון נקודות בלי אנימציית כניסה */
+        selectDay(date, false);
+        announce('נמחק: ' + ev.title);
+      };
+      row.append(tm, ti, del);
+      calDayEvents.appendChild(row);
+    });
+  }
+  /* הקראה בקול — מה יש ביום שנבחר */
+  if (speakOut) {
+    const spoken = evs.length
+      ? label + '. יש לך ' + evs.length + (evs.length === 1 ? ' אירוע: ' : ' אירועים: ')
+        + evs.map(e => new Date(e.ts).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' }) + ', ' + e.title).join('; ')
+      : label + '. אין אירועים ביום זה.';
+    announce(spoken);
+    speak(spoken);
+  }
+}
+
+function openCalendar(speakToday){
+  calReturnFocus = document.activeElement;
+  calView = new Date();
+  calSelected = new Date();
+  calendar.classList.add('open');
+  renderCalendar(true); /* כניסה עם סטגר — פעם אחת בפתיחה */
+  selectDay(new Date(), !!speakToday);
+  document.getElementById('closeCal').focus();
+}
+function closeCalendar(){
+  calendar.classList.remove('open');
+  if (HAS_TTS) speechSynthesis.cancel();
+  if (calReturnFocus && calReturnFocus.focus) calReturnFocus.focus();
+}
+document.getElementById('calBtn').onclick = () => openCalendar(true);
+document.getElementById('closeCal').onclick = closeCalendar;
+document.getElementById('calPrev').onclick = () => { calView.setMonth(calView.getMonth() - 1); renderCalendar(true); };
+document.getElementById('calNext').onclick = () => { calView.setMonth(calView.getMonth() + 1); renderCalendar(true); };
+document.getElementById('calToday').onclick = () => { calView = new Date(); renderCalendar(true); selectDay(new Date(), true); };
+calendar.addEventListener('click', e => { if (e.target === calendar) closeCalendar(); });
+/* מלכודת פוקוס */
+calendar.addEventListener('keydown', e => {
+  if (e.key !== 'Tab') return;
+  const f = calendar.querySelectorAll('button:not([disabled])');
+  const first = f[0], last = f[f.length - 1];
+  if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+  else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+});
+
 /* ============ ליבה אנימטיבית ============ */
 const cv = document.getElementById('core');
 const ctx = cv.getContext('2d');
 const DPR = Math.min(window.devicePixelRatio || 1, 2);
+let use3D = false; /* נהפוך ל-true אם הדמות התלת-מימדית נטענת בהצלחה */
 function sizeCanvas(){
   const s = Math.min(window.innerWidth * 0.7, window.innerHeight * 0.45, 420);
   cv.style.width = cv.style.height = s + 'px';
@@ -192,6 +347,7 @@ function draw(){
   }
 
   audioLevel *= 0.92;
+  if (use3D) return; /* הדמות התלת-מימדית השתלטה — עוצרים את לולאת ה-2D */
   requestAnimationFrame(draw);
 }
 draw();
@@ -199,10 +355,138 @@ draw();
 /* לחיצה על הליבה עוצרת דיבור/חשיבה */
 cv.onclick = () => cancelAll();
 
+/* ============ דמות תלת-מימד (Three.js) — ראש הולוגרפי שמגיב לקול ============ */
+function initAvatar3D(){
+  if (!window.THREE) return; /* ה-CDN לא נטען — נשארים עם ה-orb הדו-ממדי */
+  let renderer, scene, camera, head, wire, mouth, eyeL, eyeR, halo, pointLight;
+  const stage = document.getElementById('stage3d');
+  const CY = 0x4fd8ff, ICE = 0xbfeeff;
+  try {
+    renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    scene = new THREE.Scene();
+    camera = new THREE.PerspectiveCamera(42, 1, 0.1, 100);
+    camera.position.set(0, 0, 4.2);
+
+    const avatar = new THREE.Group();
+    scene.add(avatar);
+
+    /* ראש — איקוסהדרון כהה עם רשת תיל תכולה מעליו (מראה הולוגרפי) */
+    const headGeo = new THREE.IcosahedronGeometry(1, 2);
+    head = new THREE.Mesh(headGeo, new THREE.MeshPhongMaterial({
+      color: 0x0a1a2a, emissive: CY, emissiveIntensity: 0.25,
+      shininess: 60, transparent: true, opacity: 0.92, flatShading: true
+    }));
+    head.scale.set(0.9, 1.05, 0.9);
+    avatar.add(head);
+
+    wire = new THREE.Mesh(headGeo, new THREE.MeshBasicMaterial({
+      color: CY, wireframe: true, transparent: true, opacity: 0.35
+    }));
+    wire.scale.copy(head.scale).multiplyScalar(1.02);
+    avatar.add(wire);
+
+    /* עיניים — כדורים זוהרים */
+    const eyeGeo = new THREE.SphereGeometry(0.12, 16, 16);
+    const eyeMat = () => new THREE.MeshBasicMaterial({ color: ICE });
+    eyeL = new THREE.Mesh(eyeGeo, eyeMat()); eyeL.position.set(-0.32, 0.18, 0.82);
+    eyeR = new THREE.Mesh(eyeGeo, eyeMat()); eyeR.position.set(0.32, 0.18, 0.82);
+    avatar.add(eyeL, eyeR);
+
+    /* פה — לוחית שנפתחת אנכית לפי עוצמת הקול */
+    mouth = new THREE.Mesh(
+      new THREE.BoxGeometry(0.5, 0.08, 0.08),
+      new THREE.MeshBasicMaterial({ color: ICE })
+    );
+    mouth.position.set(0, -0.42, 0.8);
+    avatar.add(mouth);
+
+    /* הילה — טבעת שמגיבה לאנרגיה */
+    halo = new THREE.Mesh(
+      new THREE.TorusGeometry(1.5, 0.015, 8, 80),
+      new THREE.MeshBasicMaterial({ color: CY, transparent: true, opacity: 0.4 })
+    );
+    halo.rotation.x = Math.PI / 2.2;
+    avatar.add(halo);
+
+    scene.add(new THREE.AmbientLight(0x223344, 1.2));
+    pointLight = new THREE.PointLight(CY, 1.4, 12);
+    pointLight.position.set(1.5, 1.5, 3);
+    scene.add(pointLight);
+
+    stage.appendChild(renderer.domElement);
+    document.body.classList.add('use3d');
+    use3D = true;
+  } catch(e){
+    return; /* יצירת ההקשר נכשלה — fallback ל-orb */
+  }
+
+  function sizeStage(){
+    const s = Math.min(window.innerWidth * 0.72, window.innerHeight * 0.46, 440);
+    stage.style.width = stage.style.height = s + 'px';
+    renderer.setSize(s, s, false);
+  }
+  sizeStage();
+  addEventListener('resize', sizeStage);
+  stage.onclick = () => cancelAll();
+
+  let blink = 0, nextBlink = 120, tt = 0;
+  function loop(){
+    requestAnimationFrame(loop);
+    tt += reduced ? 0.2 : 1;
+
+    const energy = mode === State.SPEAK ? 0.6 + audioLevel
+                 : mode === State.LISTEN ? 0.45 + audioLevel
+                 : mode === State.THINK ? 0.5 + 0.25 * Math.sin(tt * 0.09)
+                 : 0.24 + 0.06 * Math.sin(tt * 0.025);
+    const active = mode !== State.IDLE;
+
+    /* תנועת ראש — סיבוב עדין בהמתנה, מהיר יותר בחשיבה, נטייה בהאזנה */
+    const spin = reduced ? 0 : (mode === State.THINK ? 0.02 : 0.004);
+    head.rotation.y = wire.rotation.y = Math.sin(tt * (mode === State.THINK ? 0.05 : 0.012)) * (active ? 0.5 : 0.32) + tt * spin * 0.15;
+    head.rotation.x = wire.rotation.x = Math.sin(tt * 0.02) * 0.08 + (mode === State.LISTEN ? 0.12 : 0);
+    const bob = reduced ? 0 : Math.sin(tt * 0.03) * 0.04;
+    head.position.y = wire.position.y = bob;
+    eyeL.position.y = eyeR.position.y = 0.18 + bob;
+    mouth.position.y = -0.42 + bob;
+    halo.rotation.z = tt * 0.006;
+    halo.scale.setScalar(1 + energy * 0.06);
+
+    /* זוהר לפי אנרגיה */
+    head.material.emissiveIntensity = 0.2 + energy * 0.5;
+    wire.material.opacity = 0.25 + energy * 0.4;
+    pointLight.intensity = 1 + energy * 1.6;
+
+    /* פה — נפתח לפי עוצמת הדיבור בפועל */
+    const talk = (mode === State.SPEAK || mode === State.LISTEN) ? audioLevel : 0;
+    mouth.scale.y = 1 + talk * 22;
+    mouth.material.color.setHex(mode === State.SPEAK ? ICE : CY);
+
+    /* מצמוץ אקראי */
+    if (--nextBlink <= 0 && blink === 0) { blink = 12; nextBlink = 140 + Math.random() * 260; }
+    if (blink > 0) { blink--; const s = blink > 6 ? (12 - blink) / 6 : blink / 6; eyeL.scale.y = eyeR.scale.y = Math.max(0.08, s); }
+    else eyeL.scale.y = eyeR.scale.y = 1;
+
+    audioLevel *= 0.92; /* הדעיכה עברה לכאן כי לולאת ה-2D נעצרה */
+    renderer.render(scene, camera);
+  }
+  loop();
+}
+initAvatar3D();
+
+/* ============ הכרזות לקוראי מסך (IS 5568) ============ */
+const srAnnounce = document.getElementById('srAnnounce');
+function announce(text){
+  /* איפוס קצר כדי שאותה הודעה פעמיים עדיין תוכרז */
+  srAnnounce.textContent = '';
+  setTimeout(() => { srAnnounce.textContent = text; }, 30);
+}
+
 /* ============ יומן ============ */
 function addMsg(role, text){
   const d = document.createElement('div');
   d.className = 'msg ' + role;
+  if (role === 'err') d.setAttribute('role', 'alert'); /* שגיאות מוכרזות מיד בקורא מסך */
   d.textContent = text;
   log.appendChild(d);
   log.scrollTop = log.scrollHeight;
@@ -417,6 +701,7 @@ setInterval(() => {
       addMsg('ai', m);
       lastAnswer.textContent = m;
       addAlert(2, m, '');
+      announce(m);
       notifyOS('DRAY·AI — תזכורת', ev.title);
       speak(m);
     }
@@ -527,7 +812,7 @@ const HELP_TEXT = 'פקודות מקומיות (עובדות מיד, בלי מו
   + '/מדריך — מסך עם כל היכולות\n'
   + '/סטטוס · /בריאות · /התראות — מצב המערכת\n'
   + '/יומן — האירועים שלך · "קבע מחר ב-14:00 רופא" · "תזכיר לי בעוד 10 דקות להוציא כביסה"\n'
-  + '"מה יש לי היום / מחר / השבוע" — הלוז שלך\n'
+  + '"פתח לוח שנה" — לוח חודשי חזותי (📅) · "מה יש לי היום / מחר / השבוע"\n'
   + '"תזכור ש..." — זיכרון לתמיד · "מה אתה זוכר" · /ייצוא — הורדת כל השיחות לקובץ\n'
   + '/תיקייה — חיבור תיקייה (+יומן שיחות אוטומטי) · /קבצים · /קרא <שם קובץ> — סיכום\n'
   + '"פתח יוטיוב / גוגל / וואטסאפ" — פתיחת אתרים\n'
@@ -558,6 +843,10 @@ async function localAnswer(raw){
   if (/^\/?(מדריך|guide)$/i.test(t) || /^מה אתה (יודע|יכול) לעשות$/.test(t)) {
     openGuide();
     return { text: 'פתחתי את המדריך — כל מה שאני יודע לעשות, במסך אחד.', sys: true, say: 'הנה כל מה שאני יודע לעשות.' };
+  }
+  if (/^\/?(לוח שנה|לוח|יומן חזותי|calendar)$/i.test(t) || /^(פתח|הצג|תפתח|תציג)( לי)?( את)? (ה)?(לוח שנה|לוח|יומן)$/.test(t)) {
+    openCalendar(true);
+    return { text: 'פתחתי את לוח השנה.', sys: true };
   }
 
   /* --- זיכרון ארוך טווח --- */
@@ -638,6 +927,7 @@ async function localAnswer(raw){
       .trim() || 'תזכורת';
     events.push({ id: Date.now(), ts, title, done: false });
     saveEvents();
+    if (calendar.classList.contains('open')) { renderCalendar(); if (calSelected) selectDay(calSelected, false); } /* רענון לוח אם פתוח */
     askNotifyPermission(); /* מבקשים הרשאת התראות מערכת בקביעה הראשונה */
     const when = new Date(ts).toLocaleString('he-IL', { weekday: 'long', hour: '2-digit', minute: '2-digit' });
     return { text: 'נקבע: ' + fmtEv(events[events.length - 1]) + '. אזכיר לך בזמן — בקול ובהתראה.',
@@ -1082,6 +1372,7 @@ addEventListener('keydown', e => {
   aside.classList.remove('open');
   alertsPanel.classList.remove('open');
   if (guide.classList.contains('open')) closeGuide();
+  if (calendar.classList.contains('open')) closeCalendar();
 });
 
 /* ============ מוח: Groq (Llama 3.3 70B) עם סטרימינג ============ */
@@ -1124,6 +1415,7 @@ async function ask(userText, ctx){
   const local = ctx ? null : await localAnswer(userText);
   if (local) {
     addMsg(local.sys ? 'sys' : 'ai', local.text);
+    announce(local.text);
     if (local.sys) {
       history.pop(); /* פלט מערכת לא נכנס לזיכרון השיחה של המודל */
     } else {
@@ -1216,6 +1508,7 @@ async function ask(userText, ctx){
 
     history.push({ role: 'assistant', content: answer });
     saveHistory();
+    announce(answer); /* התשובה המלאה מוכרזת פעם אחת — לא טוקן-טוקן */
     appendArchive('user', userText);
     appendArchive('ai', answer);
     resolveAlertByMsg('המוח לא זמין — שגיאת רשת');

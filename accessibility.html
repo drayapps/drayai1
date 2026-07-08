@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>הצהרת נגישות — DRAY·AI</title>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;600;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#04070d; --line:rgba(80,200,255,.18); --cyan:#4fd8ff;
+    --cyan-dim:#1a6d8f; --ice:#bfeeff; --text:#d7eefb; --muted:#5f88a0;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    background:var(--bg);color:var(--text);font-family:'Heebo',sans-serif;
+    line-height:1.8;padding:40px 20px;
+  }
+  .skip-link{
+    position:fixed;top:10px;inset-inline-start:-9999px;z-index:100;
+    background:var(--cyan);color:#04121c;padding:10px 18px;border-radius:8px;
+    font-weight:600;text-decoration:none;
+  }
+  .skip-link:focus{inset-inline-start:10px}
+  main{max-width:680px;margin:0 auto}
+  h1{font-size:26px;font-weight:800;margin-bottom:8px}
+  h1 span{color:var(--cyan)}
+  h2{font-size:17px;font-weight:600;color:var(--cyan);margin:26px 0 8px}
+  p,li{font-size:15px;color:var(--text)}
+  ul{padding-inline-start:22px;display:flex;flex-direction:column;gap:4px}
+  a{color:var(--cyan)}
+  a:focus-visible,button:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+  .meta{color:var(--muted);font-size:13.5px;margin-top:30px;border-top:1px solid var(--line);padding-top:14px}
+  .back{display:inline-block;margin-top:24px;background:var(--cyan);color:#04121c;
+    padding:10px 22px;border-radius:10px;text-decoration:none;font-weight:600}
+</style>
+</head>
+<body>
+<a href="#main-content" class="skip-link">דלג לתוכן הראשי</a>
+<main id="main-content">
+  <h1>הצהרת נגישות — DRAY·<span>AI</span></h1>
+  <p>אנו מחויבים להנגשת DRAY·AI לאנשים עם מוגבלויות, בהתאם לתקנות שוויון זכויות לאנשים עם
+     מוגבלות (התאמות נגישות לשירות), התשע"ג-2013, ולתקן הישראלי ת"י 5568 המעוגן ב-WCAG 2.0 ברמה AA.</p>
+
+  <h2>אמצעי הנגישות באתר</h2>
+  <ul>
+    <li>ניווט מלא באמצעות מקלדת: Tab לניווט, Enter לשליחה, Escape לעצירה ולסגירת חלונות.</li>
+    <li>קישור "דלג לתוכן הראשי" כרכיב הראשון בסדר המיקוד.</li>
+    <li>תמיכה בקוראי מסך (NVDA, JAWS, VoiceOver): תפקידי ARIA, תוויות בעברית לכל הכפתורים, והכרזת תשובות ותזכורות באזור חי (aria-live).</li>
+    <li>חלונות דו-שיח נגישים עם ניהול מיקוד מלא — המיקוד נכנס לחלון, נלכד בתוכו, וחוזר לנקודת המוצא בסגירה.</li>
+    <li>הודעות שגיאה בעברית, מוכרזות מיידית (role="alert").</li>
+    <li>ניגודיות צבעים העומדת ביחס 4.5:1 לפחות לטקסט רגיל.</li>
+    <li>תמיכה מלאה בעברית וכיווניות RTL, כולל סימון קטעים לועזיים.</li>
+    <li>כיבוד העדפת מערכת ההפעלה לצמצום תנועה (prefers-reduced-motion) — אנימציות מוחלפות במעברי שקיפות עדינים.</li>
+    <li>הפלט הקולי מלווה בכתוביות מסונכרנות על המסך, והקלט הקולי מלווה בתמלול חי — כך שכל אינטראקציה קולית זמינה גם חזותית.</li>
+  </ul>
+
+  <h2>מגבלות נגישות ידועות</h2>
+  <ul>
+    <li>הקראת התשובות בקול תלויה בקולות העברית המותקנים במערכת ההפעלה של המשתמש; בהיעדרם, התוכן זמין במלואו כטקסט.</li>
+    <li>זיהוי הדיבור תלוי בדפדפן ובחיבור לאינטרנט; לחלופין זמינה תמיד הקלדה רגילה.</li>
+    <li>האנימציה המרכזית (הליבה) היא דקורטיבית בלבד ומוסתרת מקוראי מסך.</li>
+  </ul>
+
+  <h2>פנייה בנושא נגישות</h2>
+  <p>נתקלת בבעיית נגישות? נשמח לתקן.</p>
+  <p>רכז נגישות: Yakir Dray</p>
+  <p>דוא"ל: <a href="mailto:yakirdray1@gmail.com" dir="ltr">yakirdray1@gmail.com</a></p>
+
+  <div class="meta">
+    <p>תאריך ביקורת הנגישות האחרונה: 7 ביולי 2026 (בדיקה ידנית + כלים אוטומטיים).</p>
+    <p>תאריך עדכון ההצהרה: 7 ביולי 2026.</p>
+  </div>
+
+  <a class="back" href="index.html">חזרה ל-DRAY·AI</a>
+</main>
+</body>
+</html>

@@ -9,7 +9,12 @@
 </head>
 <body>
 
-<header>
+<!-- IS 5568: קישור דילוג לתוכן הראשי — האלמנט הראשון בסדר המיקוד -->
+<a href="#main-content" class="skip-link">דלג לתוכן הראשי</a>
+<!-- אזור הכרזות לקוראי מסך — תשובות ותזכורות מוקראות בלי להציף בזמן סטרימינג -->
+<div id="srAnnounce" role="status" aria-live="polite" class="sr-only"></div>
+
+<header role="banner">
   <div class="brand">
     <div class="dot"></div>
     <h1>DRAY·<span>AI</span></h1>
@@ -17,6 +22,7 @@
   <div class="hdr-actions">
     <span id="clock"></span>
     <div class="status" title="לחיצה מציגה סטטוס מלא" role="button" tabindex="0" aria-label="סטטוס מערכת">SYS <b id="stTxt">ONLINE</b></div>
+    <button id="calBtn" class="hdr-btn" title="לוח שנה" aria-label="לוח שנה">📅</button>
     <button id="helpBtn" class="hdr-btn" title="מדריך — מה אפשר לעשות" aria-label="מדריך שימוש">?</button>
     <button id="bellBtn" class="hdr-btn" title="התראות" aria-label="התראות">🔔<span id="alertBadge" class="hidden" aria-hidden="true">0</span></button>
     <button id="chatBtn" class="hdr-btn" title="תמלול" aria-label="תמלול השיחה">💬</button>
@@ -24,8 +30,9 @@
   </div>
 </header>
 
-<main>
+<main id="main-content" role="main" tabindex="-1">
   <div class="core-zone">
+    <div id="stage3d" aria-hidden="true" title="לחיצה עוצרת דיבור"></div>
     <canvas id="core" width="420" height="420" title="לחיצה עוצרת דיבור" aria-hidden="true"></canvas>
     <div class="core-label" id="coreLabel">standby</div>
     <div class="last-answer" id="lastAnswer">שלום יקיר. לחץ על המיקרופון ודבר אליי, או כתוב למטה.</div>
@@ -39,16 +46,16 @@
     </div>
   </div>
 
-  <aside id="aside">
+  <aside id="aside" role="complementary" aria-label="תמלול השיחה">
     <div class="head">
-      <span>TRANSCRIPT</span>
+      <span lang="en">TRANSCRIPT</span>
       <button id="clearBtn">נקה</button>
     </div>
     <div id="log"></div>
   </aside>
 </main>
 
-<footer>
+<footer role="contentinfo">
   <button id="micBtn" title="דבר אליי" aria-label="מיקרופון — דבר אליי">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
       <rect x="9" y="3" width="6" height="11" rx="3"/>
@@ -61,12 +68,30 @@
     <label class="voice-toggle"><input type="checkbox" id="ttsChk" checked> קול</label>
     <label class="voice-toggle" title="אחרי שאסיים לדבר — אקשיב שוב אוטומטית"><input type="checkbox" id="convChk"> שיחה</label>
   </div>
+  <a href="accessibility.html" class="a11y-link">הצהרת נגישות</a>
 </footer>
 
 <!-- התראות -->
 <div id="alertsPanel">
   <div class="al-head">ALERTS</div>
   <div id="alertsList"></div>
+</div>
+
+<!-- לוח שנה -->
+<div id="calendar" role="dialog" aria-modal="true" aria-labelledby="calTitle">
+  <div class="cal-card">
+    <div class="cal-head">
+      <button id="calPrev" class="hdr-btn" aria-label="חודש קודם">›</button>
+      <h2 id="calTitle">לוח שנה</h2>
+      <div class="cal-head-actions">
+        <button id="calToday" class="cal-today-btn">היום</button>
+        <button id="calNext" class="hdr-btn" aria-label="חודש הבא">‹</button>
+        <button id="closeCal" class="hdr-btn" title="סגור" aria-label="סגירת לוח השנה">✕</button>
+      </div>
+    </div>
+    <div class="cal-grid" id="calGrid" aria-label="ימי החודש"></div>
+    <div class="cal-day-events" id="calDayEvents"></div>
+  </div>
 </div>
 
 <!-- מדריך יכולות -->
@@ -91,6 +116,7 @@
         <ul>
           <li>"קבע מחר ב-14:00 רופא שיניים" · "תזכיר לי בעוד 10 דקות להוציא כביסה"</li>
           <li>"מה יש לי היום / מחר / השבוע" · <code>/יומן</code> · <code>/יומן מחק 1</code></li>
+          <li>"פתח לוח שנה" (או 📅) — לוח חודשי; לחיצה על יום מקריאה את אירועיו בקול.</li>
           <li>כשמגיע הזמן — תזכורת בקול והתראת מערכת, גם כשהחלון ברקע. פספסת? תקבל דוח בכניסה הבאה.</li>
         </ul>
       </section>
@@ -128,6 +154,7 @@
         </ul>
       </section>
       <p class="guide-tip">ונסה גם לשאול: "מי המלך שלך?" 👑</p>
+      <p class="guide-tip"><a href="accessibility.html">הצהרת נגישות</a></p>
     </div>
   </div>
 </div>
@@ -142,7 +169,7 @@
       המפתח נשמר <b>רק במכשיר שלך</b> (localStorage) ולא נשלח לשום שרת מלבד Groq.
     </p>
     <label for="keyInput">Groq API Key</label>
-    <input id="keyInput" type="password" placeholder="gsk_..." spellcheck="false">
+    <input id="keyInput" type="password" placeholder="gsk_..." spellcheck="false" dir="ltr" lang="en">
     <div class="set-actions">
       <button id="saveKey">שמור</button>
       <button id="closeSet">סגור</button>
@@ -150,6 +177,7 @@
   </div>
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="script.js"></script>
 </body>
 </html>

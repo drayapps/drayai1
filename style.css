@@ -12,6 +12,26 @@
     --ease-in-out:cubic-bezier(0.77,0,0.175,1);
   }
   *{box-sizing:border-box;margin:0;padding:0}
+
+  /* ===== IS 5568: דילוג לתוכן + תוכן לקוראי מסך בלבד ===== */
+  .skip-link{
+    position:fixed;top:10px;inset-inline-start:-9999px;z-index:100;
+    background:var(--cyan);color:#04121c;padding:10px 18px;border-radius:8px;
+    font-weight:600;font-size:14px;text-decoration:none;
+  }
+  .skip-link:focus{inset-inline-start:10px}
+  .sr-only{
+    position:absolute;width:1px;height:1px;overflow:hidden;
+    clip-path:inset(50%);white-space:nowrap;
+  }
+  main:focus{outline:none}
+  .a11y-link{
+    flex:none;font-size:10.5px;color:var(--muted);text-decoration:none;
+    align-self:center;line-height:1.3;max-width:52px;text-align:center;
+  }
+  @media (hover:hover) and (pointer:fine){
+    .a11y-link:hover{color:var(--cyan)}
+  }
   html,body{height:100%}
   body{
     background:var(--bg);
@@ -106,6 +126,11 @@
   main{flex:1;display:flex;min-height:0}
   .core-zone{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;min-width:0}
   #core{display:block;cursor:pointer}
+  /* דמות תלת-מימד — מוצגת רק כש-Three.js נטען בהצלחה */
+  #stage3d{display:none;cursor:pointer;line-height:0}
+  #stage3d canvas{display:block}
+  body.use3d #core{display:none}
+  body.use3d #stage3d{display:block}
   .core-label{
     margin-top:6px;font-family:'Share Tech Mono',monospace;font-size:13px;
     letter-spacing:.3em;color:var(--cyan-dim);text-transform:uppercase;direction:ltr;
@@ -234,6 +259,98 @@
   .voice-toggle{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--muted);cursor:pointer;user-select:none}
   .voice-toggle input{accent-color:var(--cyan);cursor:pointer}
 
+  /* ===== לוח שנה ===== */
+  #calendar{
+    position:fixed;inset:0;background:rgba(2,6,12,.8);backdrop-filter:blur(8px);
+    display:none;align-items:center;justify-content:center;z-index:50;padding:20px;
+    opacity:0;
+    transition:opacity 150ms var(--ease-out), display 150ms allow-discrete;
+  }
+  #calendar.open{
+    display:flex;opacity:1;
+    transition-duration:220ms;
+    @starting-style{opacity:0}
+  }
+  .cal-card{
+    width:min(460px,100%);max-height:86vh;display:flex;flex-direction:column;
+    background:#0a1420;border:1px solid var(--line);border-radius:16px;
+    box-shadow:0 0 60px rgba(79,216,255,.12);
+    transform:scale(1);
+    transition:transform 150ms var(--ease-out);
+  }
+  #calendar.open .cal-card{
+    transition-duration:220ms;
+    @starting-style{transform:scale(0.97)}
+  }
+  .cal-head{display:flex;align-items:center;justify-content:space-between;padding:16px 20px 12px;border-bottom:1px solid var(--line);flex:none}
+  .cal-head h2{font-size:16px;font-weight:800;flex:1;text-align:center}
+  .cal-head-actions{display:flex;align-items:center;gap:8px}
+  .cal-today-btn{
+    background:none;border:1px solid var(--line);color:var(--muted);
+    font-size:11.5px;padding:4px 10px;border-radius:6px;cursor:pointer;font-family:'Heebo',sans-serif;
+    transition:color 150ms ease, border-color 150ms ease, transform 120ms var(--ease-out);
+  }
+  .cal-today-btn:active{transform:scale(0.95)}
+  @media (hover:hover) and (pointer:fine){
+    .cal-today-btn:hover{color:var(--cyan);border-color:var(--cyan-dim)}
+  }
+  .cal-grid{
+    display:grid;grid-template-columns:repeat(7,1fr);gap:4px;padding:14px 18px;
+  }
+  .cal-dow{
+    text-align:center;font-size:11px;color:var(--muted);font-weight:600;
+    padding-bottom:6px;
+  }
+  .cal-cell{
+    position:relative;aspect-ratio:1;border:1px solid transparent;border-radius:9px;
+    background:rgba(79,216,255,.04);color:var(--text);
+    font-size:13.5px;cursor:pointer;font-family:'Heebo',sans-serif;
+    display:flex;align-items:center;justify-content:center;
+    opacity:0;transform:translateY(6px);
+    animation:cellIn 260ms var(--ease-out) forwards;
+    transition:background 150ms ease, border-color 150ms ease, transform 120ms var(--ease-out);
+  }
+  @keyframes cellIn{to{opacity:1;transform:translateY(0)}}
+  .cal-cell.blank{background:none;cursor:default;pointer-events:none;animation:none;opacity:1}
+  .cal-cell:active{transform:scale(0.93)}
+  @media (hover:hover) and (pointer:fine){
+    .cal-cell:not(.blank):hover{background:rgba(79,216,255,.12);border-color:var(--cyan-dim)}
+  }
+  .cal-cell.today{border-color:var(--cyan);color:var(--cyan);font-weight:600}
+  .cal-cell.selected{background:rgba(79,216,255,.18);border-color:var(--cyan)}
+  .cal-cell.has-ev::after{
+    content:'';position:absolute;bottom:5px;inset-inline-start:50%;transform:translateX(50%);
+    width:5px;height:5px;border-radius:50%;background:var(--amber);
+    box-shadow:0 0 6px rgba(255,184,79,.6);
+  }
+  .cal-cell.past{opacity:.5}
+  .cal-day-events{
+    border-top:1px solid var(--line);padding:14px 20px;overflow-y:auto;
+    scrollbar-width:thin;scrollbar-color:var(--cyan-dim) transparent;
+  }
+  .cal-day-events::-webkit-scrollbar{width:6px}
+  .cal-day-events::-webkit-scrollbar-thumb{background:var(--cyan-dim);border-radius:3px}
+  .cal-de-title{font-size:12.5px;color:var(--muted);margin-bottom:10px;direction:rtl}
+  .cal-de-empty{font-size:13px;color:var(--muted);text-align:center;padding:8px 0}
+  .cal-ev{
+    display:flex;align-items:center;gap:10px;padding:9px 12px;margin-bottom:6px;
+    background:rgba(79,216,255,.06);border:1px solid var(--line);border-radius:10px;
+    opacity:1;transform:translateY(0);
+    transition:opacity 200ms var(--ease-out), transform 200ms var(--ease-out);
+    @starting-style{opacity:0;transform:translateY(6px)}
+  }
+  .cal-ev-time{font-family:'Share Tech Mono',monospace;font-size:12px;color:var(--cyan);flex:none;direction:ltr}
+  .cal-ev-title{flex:1;font-size:13.5px;color:var(--ice);line-height:1.4}
+  .cal-ev-del{
+    background:none;border:1px solid var(--line);color:var(--muted);border-radius:6px;
+    width:26px;height:26px;cursor:pointer;flex:none;font-size:12px;
+    transition:color 150ms ease, border-color 150ms ease, transform 120ms var(--ease-out);
+  }
+  .cal-ev-del:active{transform:scale(0.92)}
+  @media (hover:hover) and (pointer:fine){
+    .cal-ev-del:hover{color:var(--amber);border-color:rgba(255,184,79,.4)}
+  }
+
   /* ===== מדריך יכולות ===== */
   #guide{
     position:fixed;inset:0;background:rgba(2,6,12,.8);backdrop-filter:blur(8px);
@@ -348,7 +465,8 @@
 
   @media (prefers-reduced-motion:reduce){
     .brand .dot,#micBtn.rec,.msg.typing i,#alertBadge.pop{animation:none}
-    .chip{animation-duration:1ms;animation-delay:0ms}
-    .msg,aside,#alertsPanel,#settings,.set-card,#guide,.guide-card{transition-property:opacity}
+    .chip,.cal-cell{animation-duration:1ms;animation-delay:0ms}
+    .cal-cell{opacity:1;transform:none}
+    .msg,aside,#alertsPanel,#settings,.set-card,#guide,.guide-card,#calendar,.cal-card,.cal-ev{transition-property:opacity}
   }
 
