@@ -38,6 +38,7 @@
     <button id="helpBtn" class="hdr-btn" title="מדריך — מה אפשר לעשות" aria-label="מדריך שימוש">?</button>
     <button id="bellBtn" class="hdr-btn" title="התראות" aria-label="התראות">🔔<span id="alertBadge" class="hidden" aria-hidden="true">0</span></button>
     <button id="chatBtn" class="hdr-btn" title="תמלול" aria-label="תמלול השיחה">💬</button>
+    <button id="profileBtn" class="hdr-btn" title="הפרופיל שלי" aria-label="הפרופיל שלי">👤</button>
     <button id="gearBtn" class="hdr-btn" title="הגדרות" aria-label="הגדרות">⚙</button>
   </div>
 </header>
@@ -179,6 +180,17 @@
       <p class="guide-tip">ונסה גם לשאול: "מי המלך שלך?" 👑</p>
       <p class="guide-tip"><a href="accessibility.html">הצהרת נגישות</a></p>
     </div>
+  </div>
+</div>
+
+<!-- פרופיל -->
+<div id="profile" role="dialog" aria-modal="true" aria-labelledby="profileTitle">
+  <div class="profile-card">
+    <div class="profile-head">
+      <h2 id="profileTitle">הפרופיל שלי</h2>
+      <button id="closeProfile" class="hdr-btn" title="סגור" aria-label="סגירת הפרופיל">✕</button>
+    </div>
+    <div class="profile-body" id="profileBody"></div>
   </div>
 </div>
 

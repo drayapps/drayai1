@@ -17,6 +17,18 @@ function initSupabase(){
   sb.auth.onAuthStateChange((_e, session) => onAuth(session));
   sb.auth.getSession().then(({ data }) => onAuth(data && data.session));
   wireAuthButtons();
+  checkAuthError();
+}
+
+/* אם חזרנו מ-OAuth עם שגיאה בכתובת — מציגים אותה במקום להיתקע בשקט */
+function checkAuthError(){
+  const p = new URLSearchParams(location.search);
+  const err = p.get('error_description') || p.get('error');
+  if (!err) return;
+  const msg = decodeURIComponent(err).replace(/\+/g, ' ');
+  if (typeof addAlert === 'function')
+    addAlert(1, 'התחברות Google נכשלה: ' + msg, 'ודא ש-Site URL וה-Redirect URLs ב-Supabase תואמים לכתובת שבה פתחת את האפליקציה');
+  try { history.replaceState({}, '', location.origin + location.pathname); } catch(e){}
 }
 
 async function onAuth(session){
@@ -24,9 +36,10 @@ async function onAuth(session){
   const wasIn = !!cloudUser;
   cloudUser = u || null;
   updateAuthUI();
+  if (typeof renderProfileIfOpen === 'function') renderProfileIfOpen();
   if (cloudUser && !wasIn) {
     setSyncStatus('מסנכרן…');
-    try { await mergeThenPull(); setSyncStatus('מסונכרן ✓'); }
+    try { await mergeThenPull(); setSyncStatus('מסונכרן ✓'); renderProfileIfOpen(); }
     catch (e) { setSyncStatus('שגיאת סנכרון'); }
   }
 }
@@ -144,5 +157,105 @@ let _tTasks = null, _tFacts = null, _tPrefs = null;
 function cloudPushTasks(){ if (!cloudUser || cloudApplying) return; clearTimeout(_tTasks); _tTasks = setTimeout(() => pushTasks().then(() => setSyncStatus('מסונכרן ✓')).catch(() => setSyncStatus('שגיאת סנכרון')), 800); }
 function cloudPushFacts(){ if (!cloudUser || cloudApplying) return; clearTimeout(_tFacts); _tFacts = setTimeout(() => pushFacts().catch(() => {}), 800); }
 function cloudPushPrefs(){ if (!cloudUser || cloudApplying) return; clearTimeout(_tPrefs); _tPrefs = setTimeout(() => pushPrefs().catch(() => {}), 500); }
+
+/* ============ מסך פרופיל ============ */
+let profileReturnFocus = null;
+function esc(s){ return String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c])); }
+
+function renderProfile(){
+  const body = document.getElementById('profileBody');
+  if (!body) return;
+
+  if (!cloudUser) {
+    body.innerHTML = '<div class="profile-empty"><div class="profile-avatar big" aria-hidden="true">👤</div>'
+      + '<p>התחברי עם Google כדי לראות את הפרופיל שלך ולסנכרן משימות, זיכרון והעדפות בין המכשירים.</p></div>';
+    const b = document.createElement('button');
+    b.className = 'google-btn'; b.type = 'button'; b.textContent = 'התחבר עם Google';
+    b.onclick = () => { const g = document.getElementById('googleSignIn'); if (g) g.click(); };
+    body.querySelector('.profile-empty').appendChild(b);
+    return;
+  }
+
+  const m = cloudUser.user_metadata || {};
+  const name = m.full_name || m.name || cloudUser.email || 'משתמש';
+  const email = cloudUser.email || '';
+  const avatar = m.avatar_url || m.picture || '';
+  const joined = cloudUser.created_at ? new Date(cloudUser.created_at).toLocaleDateString('he-IL', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
+  const evs = (typeof events !== 'undefined') ? events : [];
+  const upcoming = (typeof listEvents === 'function') ? listEvents(Date.now(), Infinity) : evs.filter(e => !e.done && e.ts >= Date.now());
+  const recurring = evs.filter(e => e.repeat).length;
+  const factCount = (typeof facts !== 'undefined') ? facts.length : 0;
+  const archiveCount = (typeof archive !== 'undefined') ? archive.length : 0;
+  const sizeLbl = { normal: 'רגיל', large: 'גדול', xl: 'ענק' }[store.get('dray_textsize', 'normal')] || 'רגיל';
+  const ttsOn = store.get('dray_tts', '1') === '1';
+
+  const nextList = upcoming.slice(0, 3).map(e =>
+    '<div class="pf-ev"><span class="pf-ev-t">' + esc(new Date(e.ts).toLocaleString('he-IL', { weekday: 'short', day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' }))
+    + '</span><span class="pf-ev-title">' + esc(e.title) + '</span>' + (e.repeat ? '<span class="pf-rep">🔁</span>' : '') + '</div>'
+  ).join('') || '<div class="cal-de-empty">אין משימות קרובות — יום פנוי 🌿</div>';
+
+  const avatarHtml = avatar
+    ? '<img class="profile-avatar" src="' + esc(avatar) + '" alt="" referrerpolicy="no-referrer">'
+    : '<div class="profile-avatar initial" aria-hidden="true">' + esc((name[0] || 'D').toUpperCase()) + '</div>';
+
+  body.innerHTML =
+    '<div class="profile-id">' + avatarHtml
+    + '<div class="profile-id-txt"><div class="profile-name">' + esc(name) + '</div>'
+    + '<div class="profile-email">' + esc(email) + '</div>'
+    + '<div class="profile-sync">☁️ מסונכרן עם הענן</div></div></div>'
+    + '<div class="stat-grid">'
+    + '<div class="stat"><div class="stat-num">' + upcoming.length + '</div><div class="stat-label">משימות קרובות</div></div>'
+    + '<div class="stat"><div class="stat-num">' + recurring + '</div><div class="stat-label">תזכורות חוזרות</div></div>'
+    + '<div class="stat"><div class="stat-num">' + factCount + '</div><div class="stat-label">פריטי זיכרון</div></div>'
+    + '<div class="stat"><div class="stat-num">' + archiveCount + '</div><div class="stat-label">הודעות בארכיון</div></div>'
+    + '</div>'
+    + '<div class="profile-section"><h3>מה מחכה לך</h3>' + nextList + '</div>'
+    + '<div class="profile-section"><h3>העדפות</h3><div class="pf-chips">'
+    + '<span class="pf-chip">טקסט: ' + sizeLbl + '</span>'
+    + '<span class="pf-chip">קול: ' + (ttsOn ? 'פעיל' : 'כבוי') + '</span>'
+    + '<span class="pf-chip">' + (store.get('dray_motion', 'full') === 'reduced' ? 'תנועה מופחתת' : 'תנועה רגילה') + '</span>'
+    + (store.get('dray_contrast', '0') === '1' ? '<span class="pf-chip">ניגודיות גבוהה</span>' : '')
+    + '</div></div>'
+    + '<div class="profile-section"><h3>חשבון</h3><div class="pf-meta">' + esc(email) + (joined ? ' · מחובר מאז ' + esc(joined) : '') + '</div></div>'
+    + '<button id="profileSignOut" type="button">התנתק</button>';
+
+  const so = document.getElementById('profileSignOut');
+  if (so) so.onclick = async () => { if (sb) await sb.auth.signOut(); closeProfile(); };
+}
+
+function renderProfileIfOpen(){
+  const dlg = document.getElementById('profile');
+  if (dlg && dlg.classList.contains('open')) renderProfile();
+}
+function openProfile(){
+  profileReturnFocus = document.activeElement;
+  renderProfile();
+  const dlg = document.getElementById('profile');
+  if (dlg) dlg.classList.add('open');
+  const c = document.getElementById('closeProfile'); if (c) c.focus();
+}
+function closeProfile(){
+  const dlg = document.getElementById('profile');
+  if (dlg) dlg.classList.remove('open');
+  if (profileReturnFocus && profileReturnFocus.focus) profileReturnFocus.focus();
+}
+
+(function wireProfile(){
+  const btn = document.getElementById('profileBtn');
+  const closeBtn = document.getElementById('closeProfile');
+  const dlg = document.getElementById('profile');
+  if (btn) btn.onclick = openProfile;
+  if (closeBtn) closeBtn.onclick = closeProfile;
+  if (dlg) dlg.addEventListener('click', e => { if (e.target === dlg) closeProfile(); });
+  addEventListener('keydown', e => { if (e.key === 'Escape' && dlg && dlg.classList.contains('open')) closeProfile(); });
+  if (dlg) dlg.addEventListener('keydown', e => {  /* מלכודת פוקוס */
+    if (e.key !== 'Tab') return;
+    const f = dlg.querySelectorAll('button:not([disabled]), a[href]');
+    if (!f.length) return;
+    const first = f[0], last = f[f.length - 1];
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+  });
+})();
 
 initSupabase();

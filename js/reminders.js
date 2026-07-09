@@ -207,12 +207,15 @@ function morningBriefing(){
 /* ============ זיכרון ארוך טווח: ארכיון, עובדות ויומן-קובץ ============ */
 let archive = (() => { try { return JSON.parse(store.get('dray_archive', '[]')); } catch(e){ return []; } })();
 let facts = (() => { try { return JSON.parse(store.get('dray_facts', '[]')); } catch(e){ return []; } })();
+let contacts = (() => { try { return JSON.parse(store.get('dray_contacts', '[]')); } catch(e){ return []; } })();
 function saveFacts(){ store.set('dray_facts', JSON.stringify(facts.slice(-50))); if (typeof cloudPushFacts === 'function') cloudPushFacts(); }
+function saveContacts(){ store.set('dray_contacts', JSON.stringify(contacts.slice(-200))); if (typeof cloudPushContacts === 'function') cloudPushContacts(); }
 function appendArchive(role, content){
   archive.push({ r: role, c: content, t: Date.now() });
   if (archive.length > 1000) archive = archive.slice(-1000);
   store.set('dray_archive', JSON.stringify(archive));
   logToFile(role, content);
+  if (typeof cloudPushMessage === 'function') cloudPushMessage(role, content); /* ענן: שמירת השיחה ב-messages */
 }
 /* כתיבה שקטה ל-DRAY-LOG.md בתיקייה המחוברת — אם יש הרשאה */
 let fileLogOk = null;

@@ -110,6 +110,59 @@
 .set-switch input:focus-visible + .switch { outline: 2px solid var(--cyan); outline-offset: 2px; }
 .set-hint { margin-top: 12px; font-size: 11.5px; color: var(--muted); }
 
+/* ===== מסך פרופיל ===== */
+#profile {
+  position: fixed; inset: 0; background: rgba(2, 6, 12, .8); backdrop-filter: blur(8px);
+  display: none; align-items: center; justify-content: center; z-index: 55; padding: 20px;
+  opacity: 0; transition: opacity 150ms var(--ease-out), display 150ms allow-discrete;
+}
+#profile.open { display: flex; opacity: 1; transition-duration: 220ms; }
+@starting-style { #profile.open { opacity: 0; } }
+.profile-card {
+  width: min(500px, 100%); max-height: 88vh; display: flex; flex-direction: column;
+  background: linear-gradient(180deg, #0c1a2a 0%, #070f18 100%);
+  border: 1px solid rgba(79, 216, 255, .28); border-radius: 20px;
+  box-shadow: 0 26px 80px rgba(0, 0, 0, .55), 0 0 60px rgba(79, 216, 255, .1);
+  transform: scale(1); transition: transform 150ms var(--ease-out);
+}
+#profile.open .profile-card { transition-duration: 220ms; }
+@starting-style { #profile.open .profile-card { transform: scale(.97); } }
+.profile-head { display: flex; align-items: center; justify-content: space-between; padding: 16px 22px 12px; border-bottom: 1px solid var(--line); flex: none; }
+.profile-head h2 { font-size: calc(17px * var(--tscale)); font-weight: 800; }
+.profile-body { overflow-y: auto; padding: 18px 22px 22px; scrollbar-width: thin; scrollbar-color: var(--cyan-dim) transparent; }
+.profile-body::-webkit-scrollbar { width: 6px; }
+.profile-body::-webkit-scrollbar-thumb { background: var(--cyan-dim); border-radius: 3px; }
+
+.profile-id { display: flex; align-items: center; gap: 14px; margin-bottom: 6px; }
+.profile-avatar { width: 60px; height: 60px; border-radius: 50%; object-fit: cover; border: 2px solid var(--cyan-dim); flex: none; }
+.profile-avatar.initial { display: grid; place-items: center; font-size: 26px; font-weight: 800; color: #04121c;
+  background: linear-gradient(180deg, #5fe0ff, #38b6e0); border: none; }
+.profile-avatar.big { width: 72px; height: 72px; display: grid; place-items: center; font-size: 34px; background: rgba(79, 216, 255, .1); border: 1px solid var(--line); }
+.profile-name { font-size: calc(17px * var(--tscale)); font-weight: 700; color: var(--ice); }
+.profile-email { font-size: calc(12.5px * var(--tscale)); color: var(--muted); direction: ltr; text-align: start; }
+.profile-sync { font-size: 11.5px; color: #25d366; margin-top: 3px; }
+
+.stat-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin: 18px 0; }
+.stat { background: rgba(79, 216, 255, .06); border: 1px solid var(--line); border-radius: 13px; padding: 14px 10px; text-align: center; }
+.stat-num { font-size: calc(26px * var(--tscale)); font-weight: 800; color: var(--cyan); font-family: 'Share Tech Mono', monospace; line-height: 1; }
+.stat-label { font-size: calc(11.5px * var(--tscale)); color: var(--muted); margin-top: 6px; }
+
+.profile-section { margin-top: 18px; }
+.profile-section h3 { font-size: calc(13px * var(--tscale)); color: var(--cyan); font-weight: 700; margin-bottom: 10px; }
+.pf-ev { display: flex; align-items: center; gap: 10px; padding: 9px 12px; margin-bottom: 6px; background: rgba(79, 216, 255, .06); border: 1px solid var(--line); border-radius: 10px; }
+.pf-ev-t { font-family: 'Share Tech Mono', monospace; font-size: calc(11.5px * var(--tscale)); color: var(--cyan); flex: none; }
+.pf-ev-title { flex: 1; font-size: calc(13px * var(--tscale)); color: var(--ice); }
+.pf-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.pf-chip { font-size: calc(12px * var(--tscale)); color: var(--muted); background: rgba(79, 216, 255, .06); border: 1px solid var(--line); border-radius: 999px; padding: 5px 12px; }
+.pf-meta { font-size: calc(12.5px * var(--tscale)); color: var(--muted); direction: ltr; text-align: start; }
+.profile-empty { text-align: center; display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 20px 0; }
+.profile-empty p { font-size: calc(13.5px * var(--tscale)); color: var(--text); line-height: 1.7; }
+#profileSignOut { margin-top: 22px; width: 100%; background: none; border: 1px solid var(--line); color: var(--muted);
+  border-radius: 10px; padding: 12px; min-height: 46px; font-family: 'Heebo', sans-serif; font-size: 14px; cursor: pointer;
+  transition: color 150ms ease, border-color 150ms ease, transform 120ms var(--ease-out); }
+#profileSignOut:active { transform: scale(.98); }
+@media (hover: hover) and (pointer: fine) { #profileSignOut:hover { color: var(--amber); border-color: rgba(255, 184, 79, .4); } }
+
 /* ===== חשבון וסנכרון (Supabase) ===== */
 .google-btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 10px; width: 100%;
