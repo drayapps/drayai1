@@ -3,6 +3,7 @@ let events = (() => { try { return JSON.parse(store.get('dray_events', '[]')); }
 function saveEvents(){
   events = events.filter(e => !e.done || e.ts > Date.now() - 86400000).slice(-100);
   store.set('dray_events', JSON.stringify(events));
+  if (typeof syncNativeReminders === 'function') syncNativeReminders(); /* מובייל: סנכרון התראות נייטיב (no-op בדפדפן) */
 }
 function fmtEv(e){
   const base = new Date(e.ts).toLocaleString('he-IL', { weekday: 'short', day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' }) + ' — ' + e.title;

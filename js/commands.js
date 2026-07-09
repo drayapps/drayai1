@@ -165,11 +165,12 @@ async function localAnswer(raw){
   const SCHED_SOFT = /^(?:אנא |בבקשה |תוכל[יה]? )?(הוסיפי|הוסף|תוסיפי|תוסיף|רשמי|רשום|תרשמי|תרשום|שימי|שים|תשימי|תשים|צרי|צור|תצור|תיצור|תכניסי|תכניס|הכנס)/;
   const schedCue = /(ליומן|בלוח|בלו"?ז|תזכורת|משימ|אירוע|פגיש|דדליין)/.test(t);
   const relTime = /(?:בעוד|אחרי)\s+(?:\d+|חצי|שעה|שעתיים|דקה|יומיים|שבוע|יום)/.test(t);
+  const repeatCue = detectRepeat(t) !== null;   /* "כל יום ב-8…" נחשב תזכורת גם בלי פועל, אם יש זמן */
   /* הודעת וואטסאפ שאינה תזכורת מפורשת — תטופל בבלוק הוואטסאפ, לא כאן */
   const isWhatsApp = /(וואטסאפ|ווטסאפ|וואצאפ|whatsapp)/i.test(t)
     && (/(שלח|תשלח|שלחי|כתוב|תכתוב|כתבי|נסח|תנסח|תגיד|תשדר|הודעה|הודעת)/.test(t) || t.includes(':'));
   if (!(isWhatsApp && !SCHED_STRONG.test(t))
-      && (SCHED_STRONG.test(t) || ((SCHED_SOFT.test(t) || schedCue || relTime)))) {
+      && (SCHED_STRONG.test(t) || SCHED_SOFT.test(t) || schedCue || relTime || (repeatCue && parseWhen(t)))) {
     /* ניקוי כותרת אחיד — מסיר פועל, זמן, רמזי-יומן ומילות קישור */
     const taskTitle = seg => stripWhen(seg
         .replace(SCHED_STRONG, '')
@@ -206,8 +207,8 @@ async function localAnswer(raw){
     if (!ts) {
       /* בקשת תזכורת ברורה (פועל מפורש / פועל רך + רמז יומן / זמן יחסי) — נותנים הכוונה עדינה.
          פועל רך בלי הקשר יומן — שהמוח יטפל בטבעיות */
-      if (SCHED_STRONG.test(t) || relTime || (SCHED_SOFT.test(t) && schedCue))
-        return { text: 'לא הצלחתי להבין מתי בדיוק 🙂 אפשר למשל: "קבעי מחר ב-14:00 רופא שיניים", "תזכירי לי בעוד עשר דקות" או "תזכירי לי היום בשמונה בערב".', sys: true };
+      if (SCHED_STRONG.test(t) || relTime || repeatCue || (SCHED_SOFT.test(t) && schedCue))
+        return { text: 'לא הצלחתי להבין מתי בדיוק 🙂 אפשר למשל: "קבעי מחר ב-14:00 רופא שיניים", "תזכירי לי בעוד עשר דקות" או "כל יום ב-8 בבוקר קח תרופה".', sys: true };
       return null;
     }
     const repeat = detectRepeat(t);
@@ -295,7 +296,7 @@ async function localAnswer(raw){
 
 function bootChecks(){
   if (!getKey()) addAlert(0, 'חסר מפתח Groq — המוח מנותק', 'פתח הגדרות ⚙ והדבק מפתח');
-  if (!SR) addAlert(2, 'זיהוי דיבור לא נתמך בדפדפן הזה', 'נסה Chrome לשליטה קולית');
+  if (!SR) addAlert(3, 'זיהוי דיבור מקומי לא זמין — פועל מצב הקלטה + Whisper', 'דורש מפתח Groq בהגדרות');
   if (!navigator.onLine) addAlert(1, 'אין חיבור לאינטרנט', 'בדוק את הרשת');
 }
 addEventListener('offline', () => addAlert(1, 'אין חיבור לאינטרנט', 'בדוק את הרשת'));

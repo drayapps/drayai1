@@ -73,8 +73,8 @@ if (SR) {
       addAlert(1, 'זיהוי הדיבור נכשל (' + ev.error + ')', 'נסה שוב או בדוק הרשאות');
   };
 } else {
-  micBtn.style.opacity = .35;
-  micBtn.title = 'זיהוי דיבור לא נתמך בדפדפן זה (נסה Chrome)';
+  /* אין SpeechRecognition (למשל בתוך WebView של אפליקציית מובייל) — עוברים אוטומטית ל-Whisper */
+  micBtn.title = 'לחץ להקלטה, לחץ שוב לסיום';
 }
 
 /* תצוגת ביניים — מה שנקלט מהמיקרופון או סטטוס הקלטה */
@@ -129,7 +129,7 @@ function stopListen(){
 }
 
 /* ============ מצב הקלטה + Whisper (כשזיהוי הדפדפן לא זמין) ============ */
-let voiceMode = store.get('dray_voice_mode', 'native');
+let voiceMode = store.get('dray_voice_mode', SR ? 'native' : 'whisper'); /* בלי SpeechRecognition (WebView) — Whisper כברירת מחדל */
 let mediaRec = null, recChunks = [], stopMeter = null, whisperTimer = null, discardRec = false;
 let recTick = null, recStart = 0;
 
@@ -283,11 +283,32 @@ function pickVoice(){
 if (HAS_TTS) {
   pickVoice();
   speechSynthesis.onvoiceschanged = pickVoice;
+  /* WebView (מובייל) לפעמים מחזיר רשימת קולות ריקה בטעינה — כמה ניסיונות חוזרים */
+  [300, 900, 2000].forEach(ms => setTimeout(pickVoice, ms));
 } else {
   ttsChk.checked = false;
   ttsChk.disabled = true;
   ttsChk.closest('.voice-toggle').style.opacity = .35;
 }
+
+/* ===== שחרור מנוע הדיבור (קריטי ל-Android WebView) =====
+   ב-WebView הדיבור חסום עד ש-speak() נקרא בתוך אירוע-מגע. אצלנו יש תמיד await
+   לפני הדיבור (המוח/המקומי), אז ה-gesture "נשבר". לכן משחררים במגע הראשון:
+   speak שקט בתוך ה-gesture פותח את המנוע לכל שאר השיחה. */
+let ttsUnlocked = false;
+function unlockTTS(){
+  if (ttsUnlocked || !HAS_TTS) return;
+  ttsUnlocked = true;
+  try {
+    speechSynthesis.resume();
+    const u = new SpeechSynthesisUtterance(' ');
+    u.volume = 0;
+    speechSynthesis.speak(u);
+  } catch(e){}
+  pickVoice();
+}
+['pointerdown', 'touchstart', 'keydown', 'click'].forEach(ev =>
+  addEventListener(ev, unlockTTS, { once: true, passive: true, capture: true }));
 
 /* כתוביות חיות — עוטף כל מילה ב-span ומדליק אותה כשהקול מגיע אליה */
 function startCaption(text){
@@ -342,6 +363,7 @@ function startCaption(text){
 function speak(text, onDone){
   if (!HAS_TTS || !ttsChk.checked) { onDone && onDone(); return; }
   speechSynthesis.cancel();
+  speechSynthesis.resume();          /* WebView לפעמים משאיר את המנוע ב-pause אחרי cancel */
   const u = new SpeechSynthesisUtterance(text);
   if (heVoice) u.voice = heVoice;
   u.lang = 'he-IL';
@@ -350,16 +372,19 @@ function speak(text, onDone){
   u.pitch = heVoiceMale ? 1.35 : 1.14;
   /* כתוביות רק כשהטקסט המדובר הוא מה שמוצג במרכז המסך */
   const cap = text.trim() === lastAnswer.textContent.trim() ? startCaption(text) : null;
+  let iv = null;
   u.onstart = () => setMode(State.SPEAK);
   u.onboundary = e => {
     audioLevel = Math.min(0.7, audioLevel + 0.28);
     if (cap && e.name !== 'sentence') cap.word(e.charIndex || 0);
   };
-  u.onend = () => { if (cap) cap.done(); setMode(State.IDLE); onDone && onDone(); };
-  u.onerror = () => { if (cap) cap.done(); setMode(State.IDLE); onDone && onDone(); };
+  u.onend = () => { clearInterval(iv); if (cap) cap.done(); setMode(State.IDLE); onDone && onDone(); };
+  u.onerror = () => { clearInterval(iv); if (cap) cap.done(); setMode(State.IDLE); onDone && onDone(); };
   speechSynthesis.speak(u);
-  const iv = setInterval(() => {
-    if (!speechSynthesis.speaking) return clearInterval(iv);
+  /* פועם את אנימציית הליבה, וגם מבטל את באג ה-15 שניות של Chrome/WebView (resume) */
+  iv = setInterval(() => {
+    if (!speechSynthesis.speaking && !speechSynthesis.pending) return clearInterval(iv);
+    speechSynthesis.resume();
     audioLevel = Math.min(0.7, audioLevel + 0.18 * Math.random());
   }, 130);
 }
