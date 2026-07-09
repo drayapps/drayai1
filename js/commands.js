@@ -40,6 +40,7 @@ const HELP_TEXT = 'פקודות מקומיות (עובדות מיד, בלי מו
   + '/מדריך — מסך עם כל היכולות\n'
   + '/סטטוס · /בריאות · /התראות — מצב המערכת\n'
   + '/יומן — האירועים שלך · "קבע מחר ב-14:00 רופא" · "תזכיר לי בעוד 10 דקות להוציא כביסה"\n'
+  + 'תזכורות חוזרות: "כל יום ב-8 בבוקר קח תרופה" · "כל יום שני כביסה" 🔁\n'
   + '"פתח לוח שנה" — לוח חודשי חזותי (📅) · "מה יש לי היום / מחר / השבוע"\n'
   + '"תזכור ש..." — זיכרון לתמיד · "מה אתה זוכר" · /ייצוא — הורדת כל השיחות לקובץ\n'
   + '/תיקייה — חיבור תיקייה (+יומן שיחות אוטומטי) · /קבצים · /קרא <שם קובץ> — סיכום\n'
@@ -187,7 +188,7 @@ async function localAnswer(raw){
       segs.forEach((seg, k) => {
         const ts2 = parseWhen(seg);
         if (!ts2) return;
-        events.push({ id: Date.now() + k, ts: ts2, title: taskTitle(seg), done: false });
+        events.push({ id: Date.now() + k, ts: ts2, title: taskTitle(seg), done: false, repeat: detectRepeat(seg) });
         added.push(events[events.length - 1]);
       });
       if (added.length >= 2) {
@@ -209,13 +210,15 @@ async function localAnswer(raw){
         return { text: 'לא הצלחתי להבין מתי בדיוק 🙂 אפשר למשל: "קבעי מחר ב-14:00 רופא שיניים", "תזכירי לי בעוד עשר דקות" או "תזכירי לי היום בשמונה בערב".', sys: true };
       return null;
     }
-    events.push({ id: Date.now(), ts, title: taskTitle(t), done: false });
+    const repeat = detectRepeat(t);
+    events.push({ id: Date.now(), ts, title: taskTitle(t), done: false, repeat });
     saveEvents();
     refreshCal(); /* רענון לוח אם פתוח */
     askNotifyPermission(); /* מבקשים הרשאת התראות מערכת בקביעה הראשונה */
     const when = new Date(ts).toLocaleString('he-IL', { weekday: 'long', hour: '2-digit', minute: '2-digit' });
+    const every = repeat === 'daily' ? ' כל יום' : repeat === 'weekly' ? ' כל שבוע' : '';
     return { text: 'נקבע: ' + fmtEv(events[events.length - 1]) + '. אזכיר לך בזמן — בקול ובהתראה.',
-      say: 'נקבע ל' + when + '. אזכיר לך.' };
+      say: 'נקבע ל' + when + every + '. אזכיר לך.' };
   }
 
   /* --- קבצים --- */

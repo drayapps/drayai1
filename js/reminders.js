@@ -5,7 +5,8 @@ function saveEvents(){
   store.set('dray_events', JSON.stringify(events));
 }
 function fmtEv(e){
-  return new Date(e.ts).toLocaleString('he-IL', { weekday: 'short', day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' }) + ' — ' + e.title;
+  const base = new Date(e.ts).toLocaleString('he-IL', { weekday: 'short', day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' }) + ' — ' + e.title;
+  return base + (e.repeat === 'daily' ? ' 🔁 כל יום' : e.repeat === 'weekly' ? ' 🔁 כל שבוע' : '');
 }
 function listEvents(from, to){
   return events.filter(e => !e.done && e.ts >= from && e.ts < to).sort((a, b) => a.ts - b.ts);
@@ -23,6 +24,8 @@ function stripWhen(s){
   return s
     .replace(/(?:בעוד|אחרי)\s+\d+\s*(?:דקות|דקה|שעות|שעה|ימים|יום|שבועות|שבוע)/g, ' ')
     .replace(/(?:בעוד|אחרי)\s+(?:חצי שעה|שעתיים וחצי|שעתיים|שעה וחצי|שעה|דקה|יומיים|שבוע|יום)/g, ' ')
+    .replace(/(?:בכל|כל|מדי)\s+(?:יום|בוקר|ערב|לילה|צהריים|שבוע)(?:\s+(?:ראשון|שני|שלישי|רביעי|חמישי|שישי|שבת))?/g, ' ')
+    .replace(/(?:^|\s)(?:יומי|שבועי)(?=\s|$)/g, ' ')
     .replace(/(?:מחרתיים|מחר|היום|הערב|הבוקר|הצהריים)/g, ' ')
     .replace(/ב?יום (?:ראשון|שני|שלישי|רביעי|חמישי|שישי|שבת)/g, ' ')
     .replace(/(?:אחר[יי]? ?ה?צהריים|אחה"צ|בבוקר|בצהריים|בערב|בלילה)/g, ' ')
@@ -111,6 +114,21 @@ function parseWhen(t){
 
   return d.getTime() > Date.now() ? d.getTime() : null;
 }
+
+/* זיהוי חזרתיות: "כל יום / כל בוקר" → יומי · "כל שבוע / כל יום שני / שבועי" → שבועי */
+function detectRepeat(t){
+  if (/כל\s+(?:יום\s+)?(?:ראשון|שני|שלישי|רביעי|חמישי|שישי|שבת)|כל\s+שבוע|מדי\s+שבוע|שבועי/.test(t)) return 'weekly';
+  if (/כל\s+(?:יום|בוקר|ערב|לילה|צהריים)|בכל\s+יום|מדי\s+יום|יומי/.test(t)) return 'daily';
+  return null;
+}
+/* המופע הבא של אירוע חוזר — מדלג קדימה עד שמעבר לעכשיו (שומר שעה מקומית גם ב-DST) */
+function nextOccurrence(ev){
+  const d = new Date(ev.ts);
+  const step = ev.repeat === 'weekly' ? 7 : 1;
+  do { d.setDate(d.getDate() + step); } while (d.getTime() <= Date.now());
+  return d.getTime();
+}
+
 /* התראת מערכת — קופצת גם כשהחלון ממוזער או בטאב אחר */
 function notifyOS(title, body){
   try {
@@ -131,7 +149,7 @@ setInterval(() => {
   let fired = false;
   events.forEach(ev => {
     if (!ev.done && ev.ts <= now + 30000 && ev.ts > now - 120000) {
-      ev.done = true; fired = true;
+      fired = true;
       const m = 'תזכורת: ' + ev.title;
       addMsg('ai', m);
       lastAnswer.textContent = m;
@@ -139,6 +157,8 @@ setInterval(() => {
       announce(m);
       notifyOS('DRAY·AI — תזכורת', ev.title);
       speak(m);
+      if (ev.repeat) ev.ts = nextOccurrence(ev); /* חוזר — נקבע למופע הבא */
+      else ev.done = true;
     }
   });
   if (fired) saveEvents();
@@ -149,10 +169,36 @@ function missedReminders(){
   const now = Date.now();
   const missed = events.filter(e => !e.done && e.ts <= now - 120000);
   if (!missed.length) return;
-  missed.forEach(e => { e.done = true; });
+  const lines = missed.map(fmtEv);          /* לוכדים לפני גלגול הזמן של אירועים חוזרים */
+  const titles = missed.map(e => e.title);
+  missed.forEach(e => { if (e.repeat) e.ts = nextOccurrence(e); else e.done = true; });
   saveEvents();
-  addMsg('sys', 'תזכורות שעברו בזמן שלא היית כאן:\n' + missed.map(fmtEv).join('\n'));
-  notifyOS('DRAY·AI — תזכורות שפוספסו', missed.map(e => e.title).join(' · '));
+  addMsg('sys', 'תזכורות שעברו בזמן שלא היית כאן:\n' + lines.join('\n'));
+  notifyOS('DRAY·AI — תזכורות שפוספסו', titles.join(' · '));
+}
+
+/* בריפינג בוקר — פעם ביום, בכניסה הראשונה: ברכה + מה מחכה היום. ההוק שמחזיר כל יום. */
+function morningBriefing(){
+  const todayKey = new Date().toLocaleDateString('en-CA'); /* YYYY-MM-DD מקומי */
+  if (store.get('dray_last_briefing') === todayKey) return; /* כבר בירכתי היום */
+  store.set('dray_last_briefing', todayKey);
+  const now = new Date();
+  const h = now.getHours();
+  const hi = h < 12 ? 'בוקר טוב' : h < 18 ? 'צהריים טובים' : 'ערב טוב';
+  const timeStr = now.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
+  const end = new Date(); end.setHours(23, 59, 59, 0);
+  const today = listEvents(Date.now(), end.getTime());
+  let text;
+  if (today.length) {
+    const items = today.map(e => new Date(e.ts).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' }) + ' ' + e.title).join(', ');
+    text = hi + ' יקיר, השעה ' + timeStr + '. יש לך ' + today.length + (today.length === 1 ? ' דבר היום: ' : ' דברים היום: ') + items + '.';
+  } else {
+    text = hi + ' יקיר, השעה ' + timeStr + '. היומן שלך פנוי היום — יום נקי להתחיל בו כל מה שתרצה.';
+  }
+  addMsg('ai', text);
+  lastAnswer.textContent = text;
+  announce(text);
+  speak(text); /* דיבור בכניסה עשוי להיחסם עד אינטראקציה ראשונה (מדיניות autoplay) — אז יושמע ברגע שתלחץ */
 }
 
 

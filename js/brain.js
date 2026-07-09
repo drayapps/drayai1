@@ -189,6 +189,7 @@ restoreHistory();
 renderAlerts();
 bootChecks();
 missedReminders();
+setTimeout(morningBriefing, 900); /* בריפינג בוקר — אחרי שהדף והקולות התייצבו */
 document.querySelector('.status').onclick = () => ask('/סטטוס');
 document.querySelector('.status').onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); ask('/סטטוס'); } };
 if (!getKey()) setTimeout(() => settings.classList.add('open'), 800);
