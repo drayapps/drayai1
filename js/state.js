@@ -45,8 +45,8 @@ const getKey = () => store.get(KEY_NAME);
 /* שחזור העדפות */
 ttsChk.checked = store.get('dray_tts', '1') === '1';
 convChk.checked = store.get('dray_conv', '0') === '1';
-ttsChk.onchange = () => store.set('dray_tts', ttsChk.checked ? '1' : '0');
-convChk.onchange = () => store.set('dray_conv', convChk.checked ? '1' : '0');
+ttsChk.onchange = () => { store.set('dray_tts', ttsChk.checked ? '1' : '0'); if (typeof cloudPushPrefs === 'function') cloudPushPrefs(); };
+convChk.onchange = () => { store.set('dray_conv', convChk.checked ? '1' : '0'); if (typeof cloudPushPrefs === 'function') cloudPushPrefs(); };
 
 
 /* ============ נגישות: גודל טקסט, הפחתת תנועה, ניגודיות ============ */
@@ -66,6 +66,7 @@ function applyPrefs(){
     b.setAttribute('aria-pressed', String(b.dataset.size === size)));
   if (motionChk) motionChk.checked = motion === 'reduced';
   if (contrastChk) contrastChk.checked = contrast === '1';
+  if (typeof cloudPushPrefs === 'function') cloudPushPrefs(); /* ענן: guard פנימי (מחובר + לא בזמן משיכה) */
 }
 if (segText) segText.querySelectorAll('button').forEach(b => {
   b.onclick = () => { store.set('dray_textsize', b.dataset.size); applyPrefs(); announce('גודל טקסט: ' + b.textContent); };

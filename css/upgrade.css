@@ -110,6 +110,27 @@
 .set-switch input:focus-visible + .switch { outline: 2px solid var(--cyan); outline-offset: 2px; }
 .set-hint { margin-top: 12px; font-size: 11.5px; color: var(--muted); }
 
+/* ===== חשבון וסנכרון (Supabase) ===== */
+.google-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 10px; width: 100%;
+  background: #fff; color: #1f1f1f; border: none; border-radius: 10px;
+  padding: 11px 16px; min-height: 46px; margin-top: 4px;
+  font-family: 'Heebo', sans-serif; font-weight: 600; font-size: calc(14px * var(--tscale)); cursor: pointer;
+  transition: filter 200ms ease, transform 140ms var(--ease-out);
+}
+.google-btn:active { transform: scale(.97); }
+@media (hover: hover) and (pointer: fine) { .google-btn:hover { filter: brightness(.96); } }
+.auth-profile { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.auth-profile img { border-radius: 50%; object-fit: cover; border: 1px solid var(--line); flex: none; }
+.auth-name { font-size: calc(14px * var(--tscale)); color: var(--ice); font-weight: 600; }
+#signOutBtn {
+  background: none; border: 1px solid var(--line); color: var(--muted); border-radius: 8px;
+  padding: 9px 18px; min-height: 40px; font-family: 'Heebo', sans-serif; font-size: 13px; cursor: pointer;
+  transition: color 150ms ease, border-color 150ms ease, transform 120ms var(--ease-out);
+}
+#signOutBtn:active { transform: scale(.96); }
+@media (hover: hover) and (pointer: fine) { #signOutBtn:hover { color: var(--amber); border-color: rgba(255, 184, 79, .4); } }
+
 /* ==========================================================================
    ריענון נועז — לוח השנה והתזכורות
    ========================================================================== */

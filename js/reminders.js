@@ -4,6 +4,7 @@ function saveEvents(){
   events = events.filter(e => !e.done || e.ts > Date.now() - 86400000).slice(-100);
   store.set('dray_events', JSON.stringify(events));
   if (typeof syncNativeReminders === 'function') syncNativeReminders(); /* מובייל: סנכרון התראות נייטיב (no-op בדפדפן) */
+  if (typeof cloudPushTasks === 'function') cloudPushTasks(); /* ענן: דחיפה ל-Supabase כשמחוברים (no-op אחרת) */
 }
 function fmtEv(e){
   const base = new Date(e.ts).toLocaleString('he-IL', { weekday: 'short', day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' }) + ' — ' + e.title;
@@ -206,7 +207,7 @@ function morningBriefing(){
 /* ============ זיכרון ארוך טווח: ארכיון, עובדות ויומן-קובץ ============ */
 let archive = (() => { try { return JSON.parse(store.get('dray_archive', '[]')); } catch(e){ return []; } })();
 let facts = (() => { try { return JSON.parse(store.get('dray_facts', '[]')); } catch(e){ return []; } })();
-function saveFacts(){ store.set('dray_facts', JSON.stringify(facts.slice(-50))); }
+function saveFacts(){ store.set('dray_facts', JSON.stringify(facts.slice(-50))); if (typeof cloudPushFacts === 'function') cloudPushFacts(); }
 function appendArchive(role, content){
   archive.push({ r: role, c: content, t: Date.now() });
   if (archive.length > 1000) archive = archive.slice(-1000);

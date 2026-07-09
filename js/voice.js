@@ -88,7 +88,7 @@ function clearInterim(){
 
 async function startListen(){
   if (!rec || mode === State.THINK) return;
-  if (HAS_TTS) speechSynthesis.cancel();
+  ttsStop();
 
   /* בקשת הרשאה מפורשת פעם אחת — בלעדיה Chrome לפעמים מכבה את הזיהוי מיד בשקט */
   if (!micGranted && navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
@@ -169,7 +169,7 @@ async function startWhisper(){
     settings.classList.add('open');
     return;
   }
-  if (HAS_TTS) speechSynthesis.cancel();
+  ttsStop();
   let stream;
   try { stream = await navigator.mediaDevices.getUserMedia({ audio: true }); }
   catch(e){
@@ -360,8 +360,31 @@ function startCaption(text){
   };
 }
 
+/* דיבור נייטיב (Capacitor) — מנוע ה-TTS של מערכת ההפעלה. אמין באנדרואיד/iOS,
+   בניגוד ל-speechSynthesis של ה-WebView שמחזיר קולות ריקים ושקט. */
+function speakNative(TTS, text, onDone){
+  try { TTS.stop(); } catch(e){}
+  setMode(State.SPEAK);
+  const iv = setInterval(() => { audioLevel = Math.min(0.7, audioLevel + 0.18 * Math.random()); }, 130);
+  const finish = () => { clearInterval(iv); setMode(State.IDLE); onDone && onDone(); };
+  TTS.speak({ text: text, lang: 'he-IL', rate: 1.0, pitch: 1.12, volume: 1.0, category: 'playback' })
+    .then(finish).catch(finish);
+}
+
+/* עצירת דיבור — גם ב-WebView וגם במנוע הנייטיב */
+function ttsStop(){
+  if (HAS_TTS) { try { speechSynthesis.cancel(); } catch(e){} }
+  const NT = window.Capacitor && Capacitor.Plugins && Capacitor.Plugins.TextToSpeech;
+  if (NT) { try { NT.stop(); } catch(e){} }
+}
+
 function speak(text, onDone){
-  if (!HAS_TTS || !ttsChk.checked) { onDone && onDone(); return; }
+  if (!ttsChk.checked) { onDone && onDone(); return; }
+  /* במובייל — מנוע נייטיב במקום speechSynthesis של ה-WebView */
+  const NT = window.Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform()
+    && Capacitor.Plugins && Capacitor.Plugins.TextToSpeech;
+  if (NT) return speakNative(NT, text, onDone);
+  if (!HAS_TTS) { onDone && onDone(); return; }
   speechSynthesis.cancel();
   speechSynthesis.resume();          /* WebView לפעמים משאיר את המנוע ב-pause אחרי cancel */
   const u = new SpeechSynthesisUtterance(text);
@@ -393,7 +416,7 @@ function speak(text, onDone){
 /* ============ עצירה כוללת ============ */
 function cancelAll(){
   if (aborter) { aborter.abort(); aborter = null; }
-  if (HAS_TTS) speechSynthesis.cancel();
+  ttsStop();
   clearTimeout(silenceTimer);
   finalBuf = ''; /* ביטול — לא שולחים את מה שנצבר */
   stopListen();
