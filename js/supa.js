@@ -165,6 +165,14 @@ async function pullAll(){
     if (tasks) { events = tasks.map(rowToEv); store.set('dray_events', JSON.stringify(events)); }
     const { data: f } = await sb.from('facts').select('content').order('created_at');
     if (f) { facts = f.map(r => r.content); store.set('dray_facts', JSON.stringify(facts)); }
+    if (typeof archive !== 'undefined') {   /* שיחות — טעינת ההיסטוריה מהענן (המשכיות בין מכשירים) */
+      const { data: msgs } = await sb.from('messages').select('role,content,created_at').order('created_at', { ascending: true }).limit(400);
+      if (msgs) { archive = msgs.map(r => ({ r: r.role, c: r.content, t: Date.parse(r.created_at) })); store.set('dray_archive', JSON.stringify(archive)); }
+    }
+    if (typeof contacts !== 'undefined') {  /* אנשי קשר לוואטסאפ */
+      const { data: cts } = await sb.from('contacts').select('name,phone').order('name');
+      if (cts) { contacts = cts.map(r => ({ name: r.name, phone: r.phone || '' })); store.set('dray_contacts', JSON.stringify(contacts)); }
+    }
     const { data: p } = await sb.from('preferences').select('*').eq('user_id', cloudUser.id).maybeSingle();
     if (p) {
       store.set('dray_textsize', p.text_size);
@@ -183,9 +191,10 @@ async function pullAll(){
 }
 
 /* ----- הוקים (נקראים מ-saveEvents/saveFacts ומההעדפות). מוגנים לחלוטין. ----- */
-let _tTasks = null, _tFacts = null, _tPrefs = null;
+let _tTasks = null, _tFacts = null, _tPrefs = null, _tContacts = null;
 function cloudPushTasks(){ if (!cloudUser || cloudApplying) return; clearTimeout(_tTasks); _tTasks = setTimeout(() => pushTasks().then(() => setSyncStatus('מסונכרן ✓')).catch(() => setSyncStatus('שגיאת סנכרון')), 800); }
 function cloudPushFacts(){ if (!cloudUser || cloudApplying) return; clearTimeout(_tFacts); _tFacts = setTimeout(() => pushFacts().catch(() => {}), 800); }
+function cloudPushContacts(){ if (!cloudUser || cloudApplying) return; clearTimeout(_tContacts); _tContacts = setTimeout(() => pushContacts().catch(() => {}), 800); }
 function cloudPushPrefs(){ if (!cloudUser || cloudApplying) return; clearTimeout(_tPrefs); _tPrefs = setTimeout(() => pushPrefs().catch(() => {}), 500); }
 
 /* ============ מסך פרופיל ============ */
@@ -246,11 +255,20 @@ function renderProfile(){
     + '<span class="pf-chip">' + (store.get('dray_motion', 'full') === 'reduced' ? 'תנועה מופחתת' : 'תנועה רגילה') + '</span>'
     + (store.get('dray_contrast', '0') === '1' ? '<span class="pf-chip">ניגודיות גבוהה</span>' : '')
     + '</div></div>'
-    + '<div class="profile-section"><h3>חשבון</h3><div class="pf-meta">' + esc(email) + (joined ? ' · מחובר מאז ' + esc(joined) : '') + '</div></div>'
+    + '<div class="profile-section"><h3>חשבון</h3><div class="pf-meta">' + esc(email) + (joined ? ' · מחובר מאז ' + esc(joined) : '') + '</div>'
+    + '<div class="pf-meta" id="pfCloudToday">טוען סיכום יומי מהענן…</div></div>'
     + '<button id="profileSignOut" type="button">התנתק</button>';
 
   const so = document.getElementById('profileSignOut');
   if (so) so.onclick = async () => { if (sb) await sb.auth.signOut(); closeProfile(); };
+
+  /* שימוש במבט v_daily_task_report — סיכום היום שמחושב בענן */
+  if (sb) {
+    const today = new Date().toLocaleDateString('en-CA');
+    sb.from('v_daily_task_report').select('task_count').eq('day_local', today).maybeSingle()
+      .then(({ data }) => { const el = document.getElementById('pfCloudToday'); if (el) el.textContent = '📅 היום (מהענן): ' + (data ? data.task_count + ' משימות' : 'אין משימות'); })
+      .catch(() => {});
+  }
 }
 
 function renderProfileIfOpen(){

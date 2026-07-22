@@ -49,6 +49,20 @@ function waLink(number, text){
   return n ? 'https://wa.me/' + n + '?' + q : 'https://wa.me/?' + q;
 }
 
+/* אנשי קשר: משלים מספר שמור לפי שם ("שלח לאמא" → המספר שלה), ושומר שם+מספר חדשים */
+function resolveContactNumber(recipient, number){
+  if (!recipient || typeof contacts === 'undefined') return number;
+  const found = contacts.find(c => c.name === recipient) || contacts.find(c => c.name && (c.name.includes(recipient) || recipient.includes(c.name)));
+  if (!number && found && found.phone) return found.phone;   /* השלמה משם */
+  const norm = waPhone(number);
+  if (norm) {                                                /* שמירה לפעם הבאה */
+    const ex = contacts.find(c => c.name === recipient);
+    if (ex) { if (ex.phone !== norm) { ex.phone = norm; if (typeof saveContacts === 'function') saveContacts(); } }
+    else { contacts.push({ name: recipient, phone: norm }); if (typeof saveContacts === 'function') saveContacts(); }
+  }
+  return number;
+}
+
 /* כפתור־קישור ירוק בתמלול — פותח את וואטסאפ עם ההודעה מוכנה */
 function addWhatsAppAction(link, number, recipient){
   const wrap = document.createElement('div');
@@ -89,6 +103,7 @@ async function draftWhatsApp(key, intent, recipient){
 
 /* התזמור: מנסח (או משתמש בטקסט מפורש), מציג את ההודעה ואת קישור השליחה */
 async function composeWhatsApp({ number, recipient, literal, intent }){
+  number = resolveContactNumber(recipient, number); /* השלמה/שמירה של איש קשר */
   const typing = addTyping();
   let msg = literal;
   if (!msg) {
@@ -174,7 +189,9 @@ function buildDailyReport(t){
 
 /* מציגה את הדוח בתמלול + כפתור שליחה מוכן בוואטסאפ */
 function composeTaskReport(t){
-  const { text, number, recipient, count, label } = buildDailyReport(t);
+  const r = buildDailyReport(t);
+  const { text, recipient, count, label } = r;
+  const number = resolveContactNumber(recipient, r.number); /* השלמה/שמירה של איש קשר */
   addMsg('ai', text);
   addWhatsAppAction(waLink(number, text), number, recipient);
   const conf = 'הכנתי דוח משימות — ' + label + (count ? ' (' + count + (count === 1 ? ' משימה' : ' משימות') + ')' : '')
