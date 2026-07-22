@@ -84,6 +84,8 @@ const rowToEv = t => ({ cid: t.id, id: Date.parse(t.scheduled_at) || Date.now(),
 async function mergeThenPull(){
   await pushTasks();   /* מעלה אירועים מקומיים שעדיין לא בענן */
   await pushFacts();
+  await pushContacts();
+  await pushMessagesSeedIfEmpty();
   await pushPrefs();
   await pullAll();     /* ואז הענן = מקור האמת */
 }
@@ -113,6 +115,34 @@ async function pushFacts(){
   const have = new Set((data || []).map(r => r.content));
   const add = facts.filter(c => !have.has(c));
   if (add.length) await sb.from('facts').insert(add.map(c => ({ content: c })));
+}
+
+async function pushContacts(){
+  if (!sb || !cloudUser || typeof contacts === 'undefined') return;
+  const { data } = await sb.from('contacts').select('name');
+  const have = new Set((data || []).map(r => r.name));
+  const add = contacts.filter(c => c && c.name && !have.has(c.name));
+  if (add.length) await sb.from('contacts').insert(add.map(c => ({ name: c.name, phone: c.phone || null })));
+}
+
+/* שמירת הודעת שיחה בודדת ב-messages (append-only) */
+async function cloudPushMessage(role, content){
+  if (!sb || !cloudUser || cloudApplying) return;
+  const r = role === 'user' ? 'user' : (role === 'ai' ? 'ai' : 'sys');
+  try { await sb.from('messages').insert({ role: r, content: content }); } catch (e) {}
+}
+
+/* בהתחברות ראשונה: אם אין עדיין שיחות בענן — מזרעים את הארכיון המקומי (חד-פעמי, בלי כפילויות) */
+async function pushMessagesSeedIfEmpty(){
+  if (!sb || !cloudUser || typeof archive === 'undefined') return;
+  const { count } = await sb.from('messages').select('id', { count: 'exact', head: true });
+  if ((count || 0) === 0 && archive.length) {
+    const rows = archive.slice(-500).map(m => ({
+      role: m.r === 'user' ? 'user' : (m.r === 'ai' ? 'ai' : 'sys'),
+      content: m.c, created_at: new Date(m.t || Date.now()).toISOString()
+    }));
+    for (let i = 0; i < rows.length; i += 200) { try { await sb.from('messages').insert(rows.slice(i, i + 200)); } catch (e) {} }
+  }
 }
 
 async function pushPrefs(){

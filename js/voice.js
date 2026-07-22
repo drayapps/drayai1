@@ -362,13 +362,36 @@ function startCaption(text){
 
 /* דיבור נייטיב (Capacitor) — מנוע ה-TTS של מערכת ההפעלה. אמין באנדרואיד/iOS,
    בניגוד ל-speechSynthesis של ה-WebView שמחזיר קולות ריקים ושקט. */
+let nativeVoiceIdx = null;   /* אינדקס הקול העברי הנשי הנבחר במנוע הנייטיב */
+let nativeVoiceTried = false;
+async function initNativeVoice(TTS){
+  nativeVoiceTried = true;
+  try {
+    const res = await TTS.getSupportedVoices();
+    const voices = (res && res.voices) || [];
+    let best = -1, bestScore = -1;
+    voices.forEach((v, i) => {
+      const lang = (v.lang || '').toLowerCase();
+      if (!lang.startsWith('he')) return;               /* רק קולות עברית — אחרת ההגייה נשברת */
+      let s = 1;
+      if (VOICE_FEMALE.test(v.name || '')) s += 40;
+      if (VOICE_MALE.test(v.name || '')) s -= 40;
+      if (/enhanced|premium|neural|natural|wavenet|google/i.test(v.name || '')) s += 20; /* קול איכותי/רשת */
+      if (s > bestScore) { bestScore = s; best = i; }
+    });
+    if (best >= 0) nativeVoiceIdx = best;
+  } catch(e){}
+}
 function speakNative(TTS, text, onDone){
   try { TTS.stop(); } catch(e){}
+  if (!nativeVoiceTried) initNativeVoice(TTS); /* בחירת קול פעם אחת (לא חוסם את הדיבור הראשון) */
   setMode(State.SPEAK);
   const iv = setInterval(() => { audioLevel = Math.min(0.7, audioLevel + 0.18 * Math.random()); }, 130);
   const finish = () => { clearInterval(iv); setMode(State.IDLE); onDone && onDone(); };
-  TTS.speak({ text: text, lang: 'he-IL', rate: 1.0, pitch: 1.12, volume: 1.0, category: 'playback' })
-    .then(finish).catch(finish);
+  /* עדין ורגוע: מעט איטי, גובה טבעי (לא מוגזם) */
+  const opts = { text: text, lang: 'he-IL', rate: 0.95, pitch: 1.06, volume: 1.0, category: 'playback' };
+  if (nativeVoiceIdx != null) opts.voice = nativeVoiceIdx;
+  TTS.speak(opts).then(finish).catch(finish);
 }
 
 /* עצירת דיבור — גם ב-WebView וגם במנוע הנייטיב */
@@ -391,8 +414,8 @@ function speak(text, onDone){
   if (heVoice) u.voice = heVoice;
   u.lang = 'he-IL';
   /* קול נשי, עדין ורגוע. על קול גברי (Asaf) מרימים pitch כדי לרכך לכיוון נשי */
-  u.rate = 0.98;
-  u.pitch = heVoiceMale ? 1.35 : 1.14;
+  u.rate = 0.96;
+  u.pitch = heVoiceMale ? 1.3 : 1.1;
   /* כתוביות רק כשהטקסט המדובר הוא מה שמוצג במרכז המסך */
   const cap = text.trim() === lastAnswer.textContent.trim() ? startCaption(text) : null;
   let iv = null;

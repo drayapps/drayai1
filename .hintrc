@@ -11,5 +11,16 @@
     "not chrome <= 112",
     "not firefox <= 150",
     "not samsung <= 29"
-  ]
+  ],
+  "hints": {
+    "compat-api/html": [
+      "default",
+      {
+        "ignore": [
+          "meta[name=theme-color]"
+        ]
+      }
+    ],
+    "no-inline-styles": "off"
+  }
 }
