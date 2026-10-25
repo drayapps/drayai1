@@ -1,0 +1,6 @@
+# build tooling + generated media for the promo video (not part of the app)
+node_modules/
+three.min.js
+*.mp4
+*.wav
+package-lock.json

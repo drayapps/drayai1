@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<style>
+@font-face{font-family:Heebo;font-weight:400;src:url(node_modules/@fontsource/heebo/files/heebo-hebrew-400-normal.woff2) format('woff2'),url(node_modules/@fontsource/heebo/files/heebo-latin-400-normal.woff2) format('woff2');}
+@font-face{font-family:Heebo;font-weight:600;src:url(node_modules/@fontsource/heebo/files/heebo-hebrew-600-normal.woff2) format('woff2');}
+@font-face{font-family:Heebo;font-weight:800;src:url(node_modules/@fontsource/heebo/files/heebo-hebrew-800-normal.woff2) format('woff2'),url(node_modules/@fontsource/heebo/files/heebo-latin-800-normal.woff2) format('woff2');}
+@font-face{font-family:'Share Tech Mono';font-weight:400;src:url(node_modules/@fontsource/share-tech-mono/files/share-tech-mono-latin-400-normal.woff2) format('woff2');}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:1920px;height:1080px;overflow:hidden;background:#04070d;font-family:Heebo,sans-serif}
+#stage{position:absolute;width:1920px;height:1080px;top:0;left:0}
+canvas#bg{position:absolute;inset:0}
+/* screenshot card */
+#card{position:absolute;left:180px;top:46px;width:1560px;height:878px;border-radius:22px;
+  border:1px solid rgba(79,216,255,.28);box-shadow:0 40px 120px rgba(0,0,0,.6),0 0 0 1px rgba(255,255,255,.02),inset 0 0 60px rgba(79,216,255,.04);
+  overflow:hidden;background:#060a12}
+#wrap{position:absolute;inset:0;transform-origin:50% 50%}
+#shot{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.hl{position:absolute;pointer-events:none}
+.hl svg{position:absolute;inset:0;overflow:visible}
+.hl rect{fill:none;stroke-width:3;stroke-linecap:round;filter:drop-shadow(0 0 7px currentColor)}
+.hl .spot{position:absolute;inset:0;border-radius:12px;box-shadow:0 0 0 4000px rgba(2,5,11,.0)}
+.hl .lab{position:absolute;white-space:nowrap;font-weight:800;font-size:19px;color:#031018;
+  padding:6px 13px;border-radius:999px;transform-origin:center;box-shadow:0 6px 20px rgba(0,0,0,.4)}
+#cursor{position:absolute;left:0;top:0;width:38px;height:38px;filter:drop-shadow(0 4px 6px rgba(0,0,0,.5))}
+#ripple{position:absolute;border:2px solid rgba(255,255,255,.8);border-radius:50%;pointer-events:none}
+/* caption + chrome */
+#capWrap{position:absolute;left:180px;top:948px;display:flex;align-items:center;gap:16px}
+#capNum{font-family:'Share Tech Mono';font-weight:400;font-size:21px;color:#04070d;background:linear-gradient(90deg,#4fd8ff,#8ae9ff);
+  padding:7px 15px;border-radius:10px;letter-spacing:1px}
+#capTitle{font-size:40px;font-weight:800;color:#eaf6ff;letter-spacing:-.5px}
+#capTitle b{color:#4fd8ff;font-weight:800}
+#brandChip{position:absolute;right:180px;top:958px;display:flex;align-items:center;gap:10px;opacity:.9}
+#brandChip .bdot{width:13px;height:13px;border-radius:50%;background:#4fd8ff;box-shadow:0 0 12px #4fd8ff}
+#brandChip span{font-weight:800;font-size:24px;color:#dff3ff;letter-spacing:1px}
+#brandChip span i{color:#4fd8ff;font-style:normal}
+/* subtitles */
+#subs{position:absolute;left:0;right:0;bottom:168px;margin:0 auto;width:fit-content;max-width:1360px;
+  background:rgba(4,9,16,.8);border:1px solid rgba(79,216,255,.18);backdrop-filter:blur(6px);
+  padding:12px 26px;border-radius:16px;font-size:30px;font-weight:600;color:#eaf6ff;text-align:center;line-height:1.3}
+#subs b{color:#4fd8ff;font-weight:800}
+#subs .w{opacity:.26;transition:none}
+/* progress */
+#prog{position:absolute;left:0;bottom:0;height:4px;background:linear-gradient(90deg,#4fd8ff,#34d399);box-shadow:0 0 10px rgba(79,216,255,.6)}
+/* custom scenes (intro/principles/outro) */
+#custom{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:0}
+.cu{position:absolute;left:0;right:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.logo{font-size:116px;font-weight:800;letter-spacing:-2px;color:#eaf6ff}
+.logo i{color:#4fd8ff;font-style:normal}
+.logo .md{color:#4fd8ff;font-style:normal;margin:0 6px}
+.tag{font-size:40px;font-weight:600;color:#bfe6ff;margin-top:22px}
+.sub2{font-size:26px;font-weight:400;color:#7fa8c4;margin-top:14px}
+.codeline{margin-top:40px;font-family:'Share Tech Mono';font-size:28px;color:#6fe3b8;
+  background:rgba(79,216,255,.05);border:1px solid rgba(79,216,255,.18);padding:14px 26px;border-radius:12px;letter-spacing:.5px}
+.codeline .cm{color:#4fd8ff}
+.caret{display:inline-block;width:12px;height:30px;background:#6fe3b8;margin-right:4px;vertical-align:-4px}
+.pillars{display:flex;gap:80px;margin-top:10px}
+.pillar{display:flex;flex-direction:column;align-items:center;gap:18px;width:300px}
+.pillar .ic{font-size:92px;line-height:1}
+.pillar .pt{font-size:34px;font-weight:800;color:#eaf6ff}
+.pillar .pd{font-size:22px;font-weight:400;color:#86b0cc;max-width:260px;line-height:1.35}
+.slogan{font-size:46px;font-weight:800;color:#eaf6ff;margin-top:30px}
+.chips{display:flex;gap:16px;margin-top:34px;flex-wrap:wrap;justify-content:center;max-width:1100px}
+.tchip{font-family:'Share Tech Mono';font-size:22px;color:#bfe6ff;border:1px solid rgba(79,216,255,.25);
+  background:rgba(79,216,255,.05);padding:9px 20px;border-radius:999px}
+.credit{margin-top:46px;font-size:30px;font-weight:800;color:#c5a47e;letter-spacing:.5px}
+.url{margin-top:14px;font-family:'Share Tech Mono';font-size:26px;color:#4fd8ff}
+.sectionKicker{font-size:24px;font-weight:800;letter-spacing:6px;color:#4fd8ff;margin-bottom:40px}
+</style>
+</head>
+<body>
+<div id="stage">
+  <canvas id="bg" width="1920" height="1080"></canvas>
+  <div id="card">
+    <div id="wrap">
+      <img id="shot" src="../shots/01_hero.png">
+      <div id="hlLayer"></div>
+      <svg id="cursor" viewBox="0 0 24 24"><path d="M3 2l7.5 18 2.4-7.1L20 10.5 3 2z" fill="#fff" stroke="#111" stroke-width="1"/></svg>
+      <div id="ripple" style="display:none"></div>
+    </div>
+  </div>
+  <div id="capWrap"><div id="capNum">01</div><div id="capTitle"></div></div>
+  <div id="brandChip"><span class="bdot"></span><span>DRAY<i>·</i>AI</span></div>
+  <div id="subs"></div>
+  <div id="custom" style="display:none"></div>
+  <div id="prog" style="width:0"></div>
+</div>
+
+<script>
+const IMW=1920, IMH=1080, CARD={x:180,y:46,w:1560,h:878}, S=1560/1920;
+const CYAN='#4fd8ff', ICE='#bfeeff', EMER='#34d399', GOLD='#c5a47e', AMBER='#fbbf24';
+
+/* ---------- eases ---------- */
+const clamp=(a,b,v)=>Math.max(a,Math.min(b,v));
+const eIO=t=>t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2;
+const eOut=t=>1-Math.pow(1-t,3);
+const eBack=t=>{const c1=1.70158,c3=c1+1;return 1+c3*Math.pow(t-1,3)+c1*Math.pow(t-1,2);};
+
+/* ---------- scenes ---------- */
+// screen scene: {k:'s', img, num, title, nar, fx,fy,zoom, hl:[[t0,t1,x1,y1,x2,y2,label,color]], cur:[[t,x,y,click]]}
+const SC=[
+ {k:'intro', dur:5.5},
+ {k:'s', img:'01_hero.png', num:'01', dur:6.6, title:'עוזרת קולית <b>בעברית מלאה</b>',
+   nar:'דְריי היא עוזרת אישית חכמה שמבינה עברית טבעית — פשוט דברו או כתבו לה.',
+   fx:62,fy:40,zoom:1.12,
+   hl:[[.8,6.6,1788,966,1914,1074,'דברו איתה',CYAN],[2.6,6.6,905,793,1465,900,'או בחרו הצעה',ICE]],
+   cur:[[.2,1700,560],[1.6,1851,1022,1]]},
+ {k:'s', img:'02_voice.png', num:'02', dur:5.6, title:'מדברת <b>בקול אמיתי</b>',
+   nar:'היא עונה בקול חם ונעים, עם כתוביות חיות, וזוכרת כל מה שנאמר בשיחה.',
+   fx:50,fy:42,zoom:1.14,
+   hl:[[.7,5.6,935,230,1440,600,'קול + כתוביות',CYAN]]},
+ {k:'s', img:'03_reminder.png', num:'03', dur:6.0, title:'תזכורות <b>בשפה חופשית</b>',
+   nar:'אמרו מתי ומה — דְריי מבינה היום, מחר, בעוד עשר דקות, ואפילו כמה משימות במשפט אחד.',
+   fx:22,fy:28,zoom:1.16,
+   hl:[[.7,6.0,70,160,435,245,'הבנה טבעית',CYAN],[3.0,6.0,70,355,435,445,'וכמה משימות ביחד',EMER]]},
+ {k:'s', img:'04_calendar.png', num:'04', dur:6.6, title:'לוח שנה <b>חזותי</b>',
+   nar:'כל מה שקבעתם מופיע בלוח חודשי נקי — לחיצה על יום מקריאה את האירועים שלו בקול.',
+   fx:50,fy:46,zoom:1.12,
+   hl:[[.6,3.4,1150,565,1258,665,'היום',CYAN],[3.0,6.6,675,760,1245,945,'האירועים שלך',EMER]],
+   cur:[[.3,1400,480],[1.7,1203,613,1]]},
+ {k:'s', img:'05_whatsapp.png', num:'05', dur:6.0, title:'מנסחת <b>וואטסאפ</b> בשבילכם',
+   nar:'בקשו לשלוח הודעה — דְריי מנסחת אותה יפה ומכינה לכם כפתור שליחה מוכן.',
+   fx:16,fy:30,zoom:1.18,
+   hl:[[1.4,6.0,16,356,262,406,'מוכן לשליחה',EMER]],
+   cur:[[.3,420,540],[1.8,140,380,1]]},
+ {k:'s', img:'06_report.png', num:'06', dur:5.6, title:'דוח משימות <b>מוכן לשליחה</b>',
+   nar:'דוח יומי ממוספר עם שעות, נקי וקריא, מוכן לשלוח למשפחה בוואטסאפ בלחיצה.',
+   fx:22,fy:30,zoom:1.16,
+   hl:[[.7,5.6,70,300,440,470,'דוח ממוספר',CYAN]]},
+ {k:'s', img:'07_memory.png', num:'07', dur:5.6, title:'<b>זוכרת</b> אתכם לאורך זמן',
+   nar:'ספרו לה עובדה אחת, והיא תזכור אותה לתמיד — בכל שיחה עתידית איתכם.',
+   fx:22,fy:34,zoom:1.16,
+   hl:[[.7,5.6,70,250,440,620,'זיכרון קבוע',GOLD]]},
+ {k:'s', img:'08_status.png', num:'08', dur:5.6, title:'שכבת <b>Jarvis</b> — שליטה מלאה',
+   nar:'סטטוס, התראות וניטור עצמי בזמן אמת — תמיד תדעו שהכול עובד כמו שצריך.',
+   fx:28,fy:32,zoom:1.14,
+   hl:[[.7,3.3,485,590,615,700,'התראות חכמות',AMBER],[3.0,5.6,70,250,440,520,'סטטוס מלא',CYAN]]},
+ {k:'s', img:'09_profile.png', num:'09', dur:6.0, title:'פרופיל <b>מסונכרן בענן</b>',
+   nar:'התחברו עם גוגל — והמשימות, הזיכרון וההעדפות עוברים איתכם בין כל המכשירים.',
+   fx:78,fy:42,zoom:1.12,
+   hl:[[.7,6.0,1480,618,1810,720,'סנכרון ענן',EMER]]},
+ {k:'principles', dur:5.6},
+ {k:'outro', dur:6.2},
+];
+let acc=0; SC.forEach(s=>{s.t0=acc;acc+=s.dur;}); const TOTAL=acc;
+window.__TOTAL=TOTAL;
+
+/* ---------- build highlight DOM ---------- */
+const hlLayer=document.getElementById('hlLayer');
+function buildHL(scene){
+  hlLayer.innerHTML='';
+  if(scene.k!=='s'||!scene.hl) return [];
+  return scene.hl.map(h=>{
+    const [t0,t1,x1,y1,x2,y2,label,color]=h;
+    const X=x1*S, Y=y1*S, W=(x2-x1)*S, H=(y2-y1)*S;
+    const el=document.createElement('div'); el.className='hl';
+    el.style.left=X+'px'; el.style.top=Y+'px'; el.style.width=W+'px'; el.style.height=H+'px'; el.style.color=color;
+    el.innerHTML='<div class="spot"></div>'
+      +'<svg width="'+W+'" height="'+H+'"><rect x="2" y="2" width="'+(W-4)+'" height="'+(H-4)+'" rx="11" pathLength="100"/></svg>'
+      +'<div class="lab" style="background:'+color+'">'+label+'</div>';
+    hlLayer.appendChild(el);
+    const rect=el.querySelector('rect'); rect.style.strokeDasharray=100;
+    const lab=el.querySelector('.lab');
+    // label placement: below box if room, else above
+    lab.style.left='0px'; lab.style.top=(H+9)+'px';
+    return {el,rect,lab,t0,t1,W,H,spot:el.querySelector('.spot')};
+  });
+}
+
+/* ---------- subtitles ---------- */
+const subs=document.getElementById('subs');
+function buildSubs(nar){
+  // keep <b>..</b> accents while splitting into word spans
+  const parts=nar.split(/(<b>.*?<\/b>)/g).filter(Boolean);
+  let html='';
+  parts.forEach(p=>{
+    if(p.startsWith('<b>')){ const inner=p.replace(/<\/?b>/g,''); inner.split(' ').forEach(w=>{ if(w) html+='<span class="w"><b>'+w+'</b></span> '; }); }
+    else p.split(' ').forEach(w=>{ if(w) html+='<span class="w">'+w+'</span> '; });
+  });
+  subs.innerHTML=html;
+  return subs.querySelectorAll('.w');
+}
+
+/* ---------- custom scene builders ---------- */
+const custom=document.getElementById('custom');
+function buildIntro(){
+  return '<div class="cu" data-a="rise"><div class="logo">DRAY<i>·</i>AI</div>'
+    +'<div class="tag" data-a="rise" data-d=".25">העוזרת האישית שמדברת עברית</div>'
+    +'<div class="sub2" data-a="rise" data-d=".45">קול · זיכרון · יומן — הכול בדפדפן, בלי התקנה</div>'
+    +'<div class="codeline" data-a="rise" data-d=".7"><span class="cm">const</span> dray = <span class="cm">new</span> Assistant(<span style="color:#c5a47e">\'he-IL\'</span>)<span class="caret" id="caret"></span></div></div>';
+}
+function buildPrinciples(){
+  return '<div class="cu"><div class="sectionKicker" data-a="rise">שלושה עקרונות</div>'
+    +'<div class="pillars">'
+    +'<div class="pillar" data-a="pop" data-d="0"><div class="ic" data-bob="0">🗣️</div><div class="pt">עברית מלאה</div><div class="pd">מבינה ומדברת עברית טבעית, מימין לשמאל</div></div>'
+    +'<div class="pillar" data-a="pop" data-d=".15"><div class="ic" data-bob="1">🔊</div><div class="pt">קול אמיתי</div><div class="pd">עונה בקול, עם כתוביות חיות ומצב שיחה רציף</div></div>'
+    +'<div class="pillar" data-a="pop" data-d=".3"><div class="ic" data-bob="2">🔒</div><div class="pt">פרטי וחינם</div><div class="pd">רץ אצלכם בדפדפן — המפתח נשאר על המכשיר</div></div>'
+    +'</div></div>';
+}
+function buildOutro(){
+  return '<div class="cu" data-a="rise"><div class="logo">DRAY<i>·</i>AI</div>'
+    +'<div class="slogan" data-a="rise" data-d=".2">העוזרת האישית שלך. בעברית. עכשיו.</div>'
+    +'<div class="chips" data-a="rise" data-d=".4">'
+    +'<span class="tchip">Groq · Llama 3.3</span><span class="tchip">Web Speech + Whisper</span>'
+    +'<span class="tchip">Three.js</span><span class="tchip">Supabase Sync</span><span class="tchip">PWA</span></div>'
+    +'<div class="credit" data-a="rise" data-d=".65">נבנה על ידי DrayApps</div>'
+    +'<div class="url" data-a="rise" data-d=".8">drayai.vercel.app</div></div>';
+}
+
+/* ---------- background particles (seeded, computed from t) ---------- */
+const bg=document.getElementById('bg'), bx=bg.getContext('2d');
+function rnd(s){ s=Math.sin(s)*43758.5453; return s-Math.floor(s); }
+const PT=Array.from({length:48},(_,i)=>({x:rnd(i*1.7),y:rnd(i*3.3+1),r:.6+rnd(i*5.1)*2.3,sp:.1+rnd(i*7.7)*.5,ph:rnd(i*9.1)*6.28,dir:i%2?1:-1}));
+function drawBG(t){
+  bx.clearRect(0,0,1920,1080);
+  // base radial gradients
+  let g=bx.createRadialGradient(1300,360,80,1300,360,1200);
+  g.addColorStop(0,'rgba(10,40,64,.55)');g.addColorStop(1,'rgba(4,7,13,0)');bx.fillStyle=g;bx.fillRect(0,0,1920,1080);
+  g=bx.createRadialGradient(360,900,60,360,900,1000);
+  g.addColorStop(0,'rgba(10,52,48,.3)');g.addColorStop(1,'rgba(4,7,13,0)');bx.fillStyle=g;bx.fillRect(0,0,1920,1080);
+  bx.fillStyle='#04070d';bx.globalCompositeOperation='destination-over';bx.fillRect(0,0,1920,1080);bx.globalCompositeOperation='source-over';
+  // dot grid grain
+  bx.fillStyle='rgba(79,216,255,.035)';
+  for(let y=24;y<1080;y+=46)for(let x=24;x<1920;x+=46){bx.beginPath();bx.arc(x,y,1,0,6.28);bx.fill();}
+  // drifting glow particles
+  PT.forEach(p=>{
+    const px=((p.x+ (t*p.sp*.012*p.dir))%1+1)%1*1920;
+    const py=(p.y*1080 + Math.sin(t*.3*p.sp+p.ph)*26);
+    const a=.12+.1*Math.sin(t*.6+p.ph);
+    bx.fillStyle='rgba(120,220,255,'+Math.max(0,a)+')';
+    bx.beginPath();bx.arc(px,py,p.r,0,6.28);bx.fill();
+  });
+}
+
+/* ---------- element refs ---------- */
+const stage=document.getElementById('stage');
+const card=document.getElementById('card'), wrap=document.getElementById('wrap'), shot=document.getElementById('shot');
+const cursor=document.getElementById('cursor'), ripple=document.getElementById('ripple');
+const capWrap=document.getElementById('capWrap'), capNum=document.getElementById('capNum'), capTitle=document.getElementById('capTitle');
+const brandChip=document.getElementById('brandChip'), prog=document.getElementById('prog');
+
+/* ---------- per-scene cache ---------- */
+let cur=-1, hls=[], subWords=[];
+function enter(i){
+  const s=SC[i];
+  if(s.k==='s'){
+    shot.src='../shots/'+s.img;
+    hls=buildHL(s);
+    subWords=buildSubs(s.nar);
+    capNum.textContent=s.num; capTitle.innerHTML=s.title;
+    custom.style.display='none';
+    card.style.display=''; capWrap.style.display=''; brandChip.style.display=''; subs.style.display='';
+  } else {
+    custom.style.display='flex';
+    custom.innerHTML = s.k==='intro'?buildIntro():s.k==='principles'?buildPrinciples():buildOutro();
+    card.style.display='none'; capWrap.style.display='none'; brandChip.style.display='none'; subs.style.display='none';
+    hls=[]; subWords=[];
+  }
+  cur=i;
+}
+
+/* ---------- main render ---------- */
+function render(t){
+  t=clamp(0,TOTAL-0.001,t);
+  drawBG(t);
+  // find scene
+  let i=0; for(let k=0;k<SC.length;k++){ if(t>=SC[k].t0) i=k; }
+  const s=SC[i]; const p=t-s.t0; const pf=p/s.dur;
+  if(i!==cur) enter(i);
+  prog.style.width=(t/TOTAL*1920)+'px';
+
+  // crossfade in first .5s
+  const fin=clamp(0,1,p/0.5);
+  const fout=clamp(0,1,(s.dur-p)/0.4);
+  stage.style.opacity=1; // scene content handles its own fade
+  const sceneOpacity=Math.min(fin, i<SC.length-1?1:fout, i>0?1:fin);
+
+  if(s.k==='s'){
+    card.style.opacity=sceneOpacity; capWrap.style.opacity=sceneOpacity; subs.style.opacity=sceneOpacity; brandChip.style.opacity=.9*sceneOpacity;
+    // Ken Burns
+    const sc=1+(s.zoom-1)*eIO(clamp(0,1,pf*1.05));
+    wrap.style.transformOrigin=s.fx+'% '+s.fy+'%';
+    wrap.style.transform='scale('+sc+')';
+    // caption rise
+    const cr=eOut(clamp(0,1,p/0.5));
+    capWrap.style.transform='translateY('+(16*(1-cr))+'px)';
+    // highlights
+    hls.forEach(h=>{
+      const on=p>=h.t0;
+      const dp=clamp(0,1,(p-h.t0)/0.7);
+      h.rect.style.strokeDashoffset=100-100*eOut(dp);
+      h.rect.style.opacity=on?1:0;
+      const pop=eBack(clamp(0,1,(p-h.t0-0.15)/0.45));
+      h.lab.style.opacity=on?clamp(0,1,(p-h.t0-0.15)/0.3):0;
+      h.lab.style.transform='scale('+(on?pop:0.6)+')';
+      // dim surroundings as box draws in
+      const dim=.42*eOut(dp)*(p<h.t1?1:0);
+      h.spot.style.boxShadow='0 0 0 4000px rgba(2,5,11,'+dim+')';
+      // glow pulse
+      const pulse=.5+.5*Math.sin((p-h.t0)*4);
+      h.rect.style.filter='drop-shadow(0 0 '+(5+5*pulse)+'px currentColor)';
+    });
+    // cursor
+    if(s.cur&&s.cur.length){
+      cursor.style.display='';
+      const kf=s.cur; let cx=kf[0][1],cy=kf[0][2],click=0;
+      for(let j=0;j<kf.length;j++){
+        if(p>=kf[j][0]){
+          if(j<kf.length-1){ const a=kf[j],b=kf[j+1]; const seg=clamp(0,1,(p-a[0])/(b[0]-a[0])); const e=eIO(seg);
+            cx=a[1]+(b[1]-a[1])*e; cy=a[2]+(b[2]-a[2])*e; click=b[3]&&seg>=1?1:0; }
+          else { cx=kf[j][1]; cy=kf[j][2]; click=kf[j][3]||0; }
+        }
+      }
+      const press=click?0.85:1;
+      cursor.style.left=(cx*S)+'px'; cursor.style.top=(cy*S)+'px'; cursor.style.transform='scale('+press+')';
+      cursor.style.opacity=sceneOpacity*(pf>0.02?1:0);
+      // ripple on last click keyframe
+      const last=kf[kf.length-1];
+      if(last[3]){ const since=p-last[0]; if(since>=0&&since<0.6){ const rp=since/0.6; ripple.style.display=''; const R=12+70*rp;
+          ripple.style.left=(last[1]*S-R)+'px'; ripple.style.top=(last[2]*S-R)+'px'; ripple.style.width=ripple.style.height=(R*2)+'px'; ripple.style.opacity=(1-rp)*.9; }
+        else ripple.style.display='none'; }
+      else ripple.style.display='none';
+    } else { cursor.style.display='none'; ripple.style.display='none'; }
+    // subtitles reveal
+    const n=subWords.length;
+    subWords.forEach((w,idx)=>{ const show=pf>(idx/n)*0.62; w.style.opacity=show?1:0.26; });
+  } else {
+    // custom scene
+    custom.style.opacity=sceneOpacity;
+    const kids=custom.querySelectorAll('[data-a]');
+    kids.forEach(el=>{
+      const d=parseFloat(el.dataset.d||0); const a=el.dataset.a;
+      const lp=eOut(clamp(0,1,(p-d)/0.6));
+      if(a==='rise'){ el.style.opacity=lp; el.style.transform='translateY('+(26*(1-lp))+'px)'; }
+      else if(a==='pop'){ const bp=eBack(clamp(0,1,(p-d)/0.6)); el.style.opacity=clamp(0,1,(p-d)/0.4); el.style.transform='scale('+bp+')'; }
+    });
+    // bobbing pillar icons
+    custom.querySelectorAll('[data-bob]').forEach(el=>{ const k=+el.dataset.bob; el.style.transform='translateY('+(Math.sin(p*2+k*1.1)*7)+'px)'; });
+    // caret blink
+    const caret=document.getElementById('caret'); if(caret) caret.style.opacity=(Math.floor(p*2)%2)?0.15:1;
+  }
+}
+window.render=render;
+render(0);
+</script>
+</body>
+</html>
